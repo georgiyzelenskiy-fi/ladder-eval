@@ -10,6 +10,8 @@
 
 * **`lib/skill-rubric-common.ts`** — Shared 1–5 level definitions and types (`SkillCompetency`, criteria nesting).
 * **`lib/hard-skills-rubric.ts`**, **`lib/soft-skills-rubric.ts`** — Full competency trees for evaluation UI and (later) Convex seeding.
+* **`lib/skill-checkpoints.ts`** — Deterministic checkpoint IDs per competency (`competencyToCheckpoints`).
+* **`lib/scoring.ts`** — Foundation-first + spike UI estimate (`computeFoundationFirstUiEstimate`); covered by `npm test`.
 * **Static UI references:** `docs/skill-evaluation.html`, `docs/developer-dashboard.html` — HTML prototypes aligned with [design-document.md §6.2](./design-document.md) patterns; port to App Router components when wiring the live matrix.
 
 ## 3. Data Model (Convex Schema)
