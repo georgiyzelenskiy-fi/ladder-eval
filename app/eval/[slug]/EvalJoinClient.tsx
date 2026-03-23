@@ -5,6 +5,7 @@ import { DEFAULT_SESSION_SLUG, STORAGE_USER_ID_KEY } from "@/lib/devsync-constan
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { EvaluatorMatrix } from "./EvaluatorMatrix";
 
 type Props = { slug: string };
 
@@ -126,7 +127,7 @@ export function EvalJoinClient({ slug }: Props) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Evaluator
@@ -140,20 +141,38 @@ export function EvalJoinClient({ slug }: Props) {
       </header>
 
       {me ? (
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Signed in as
-          </p>
-          <p className="mt-1 text-lg font-medium text-zinc-900 dark:text-zinc-50">
-            {me.name}
-          </p>
-          <p className="mt-3 text-xs text-zinc-500">
-            Matrix UI and prep rules ship in the next slice; your id is stored
-            in this browser.
-          </p>
-        </div>
+        <>
+          <div className="max-w-md rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Signed in as
+            </p>
+            <p className="mt-1 text-lg font-medium text-zinc-900 dark:text-zinc-50">
+              {me.name}
+            </p>
+            <p className="mt-3 text-xs text-zinc-500">
+              Your evaluator id is stored in this browser (localStorage).
+            </p>
+          </div>
+          {sessionId ? (
+            roster === undefined ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Loading roster…
+              </p>
+            ) : (
+              <EvaluatorMatrix
+                sessionId={sessionId}
+                phase={session.phase}
+                myUserId={me._id}
+                roster={roster}
+              />
+            )
+          ) : null}
+        </>
       ) : (
-        <form onSubmit={onJoin} className="flex flex-col gap-3">
+        <form
+          onSubmit={onJoin}
+          className="mx-auto flex max-w-md flex-col gap-3"
+        >
           <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Display name
             {existingProfile?.name ? (

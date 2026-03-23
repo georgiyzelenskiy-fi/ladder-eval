@@ -11,6 +11,21 @@ export const listEvaluationsForSession = query({
   },
 });
 
+/** Prep-safe: only this evaluator’s rows (no peer checkpoint leakage). */
+export const listEvaluationsForEvaluator = query({
+  args: {
+    sessionId: v.id("sessions"),
+    evaluatorId: v.id("users"),
+  },
+  handler: async (ctx, { sessionId, evaluatorId }) => {
+    const rows = await ctx.db
+      .query("evaluations")
+      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+      .collect();
+    return rows.filter((r) => r.evaluatorId === evaluatorId);
+  },
+});
+
 /**
  * Aggregated prep/reveal signal: raw rows plus simple per-subject checkpoint coverage.
  * UI can refine into “progress bars” and manager views.
