@@ -1,635 +1,495 @@
-<!doctype html>
+<!DOCTYPE html>
 
-<html class="dark" lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>DevSync | Skill Evaluation</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-      rel="stylesheet"
-    />
-    <script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "surface-container-highest": "#22262b",
-              "on-secondary": "#002043",
-              "surface-container": "#161a1e",
-              "on-error": "#490006",
-              "tertiary-dim": "#ab8bf9",
-              "surface-container-low": "#101417",
-              "primary-fixed-dim": "#0099f0",
-              "primary-fixed": "#2aa7ff",
-              "on-secondary-container": "#f6f7ff",
-              "on-tertiary": "#3a1482",
-              "error-container": "#9f0519",
-              "tertiary-fixed": "#bca2ff",
-              "on-secondary-fixed-variant": "#005197",
-              "on-error-container": "#ffa8a3",
-              "inverse-surface": "#f8f9fe",
-              tertiary: "#bca2ff",
-              outline: "#737679",
-              error: "#ff716c",
-              "secondary-fixed": "#b9d3ff",
-              "primary-container": "#2aa7ff",
-              "on-surface": "#f8f9fe",
-              "on-tertiary-fixed-variant": "#43208b",
-              "on-primary-fixed": "#000000",
-              "tertiary-fixed-dim": "#b091ff",
-              "secondary-fixed-dim": "#a1c5ff",
-              "on-secondary-fixed": "#003466",
-              "surface-dim": "#0b0e11",
-              "surface-variant": "#22262b",
-              surface: "#0b0e11",
-              "on-primary-fixed-variant": "#002e4d",
-              "inverse-primary": "#00639e",
-              "error-dim": "#d7383b",
-              "on-surface-variant": "#a9abaf",
-              "on-tertiary-container": "#2e0075",
-              "inverse-on-surface": "#535559",
-              "on-primary-container": "#00253f",
-              "outline-variant": "#45484c",
-              "on-primary": "#003151",
-              background: "#0b0e11",
-              "surface-container-high": "#1c2024",
-              "primary-dim": "#15a4ff",
-              "surface-container-lowest": "#000000",
-              "on-background": "#f8f9fe",
-              secondary: "#599ffb",
-              "tertiary-container": "#b091ff",
-              "surface-bright": "#282d31",
-              "secondary-dim": "#599ffb",
-              "surface-tint": "#5eb4ff",
-              "on-tertiary-fixed": "#1e0053",
-              "secondary-container": "#005fb0",
-              primary: "#5eb4ff",
-            },
-            fontFamily: {
-              headline: ["Inter"],
-              body: ["Inter"],
-              label: ["Inter"],
-            },
-            borderRadius: {
-              DEFAULT: "0.125rem",
-              lg: "0.25rem",
-              xl: "0.5rem",
-              full: "0.75rem",
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      .material-symbols-outlined {
-        font-variation-settings:
-          "FILL" 0,
-          "wght" 400,
-          "GRAD" 0,
-          "opsz" 24;
-        display: inline-block;
-        vertical-align: middle;
-      }
-      .custom-glass {
-        background: rgba(22, 26, 30, 0.8);
-        backdrop-filter: blur(12px);
-      }
-      .glow-primary {
-        box-shadow: 0 0 15px rgba(94, 180, 255, 0.2);
-      }
-      ::-webkit-scrollbar {
-        width: 4px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #0b0e11;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #45484c;
-        border-radius: 10px;
-      }
-      body {
-        background-color: #0b0e11;
-        color: #f8f9fe;
-        font-family: "Inter", sans-serif;
-      }
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevSync | Evaluation Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0b0e11; }
+        ::-webkit-scrollbar-thumb { background: #22262b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2aa7ff; }
+        
+        /* Custom Checkbox Styling */
+        .skill-item-checkbox:checked + label .check-icon { color: #5eb4ff; font-variation-settings: 'FILL' 1; }
+        .skill-item-checkbox:checked + label { border-color: rgba(94, 180, 255, 0.4); background: rgba(94, 180, 255, 0.05); }
     </style>
-  </head>
-  <body class="antialiased selection:bg-primary/30 selection:text-on-primary">
-    <!-- TopNavBar Shared Component -->
-    <header
-      class="bg-[#0B0E11] dark:bg-[#0B0E11] font-['Inter'] tracking-tight antialiased docked full-width top-0 z-50 bg-[#161B22] flat no shadows flex justify-between items-center w-full px-6 h-16 border-b border-white/5 fixed"
-    >
-      <div class="flex items-center gap-8">
-        <span
-          class="text-xl font-bold tracking-tighter text-[#F8F9FE] dark:text-[#F8F9FE]"
-          >DevSync</span
-        >
-        <nav class="hidden md:flex gap-6">
-          <a
-            class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
-            href="#"
-            >Dashboard</a
-          >
-          <a
-            class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
-            href="#"
-            >Metrics</a
-          >
-          <a
-            class="text-blue-400 border-b-2 border-blue-500 pb-1 text-sm font-medium"
-            href="#"
-            >Reviews</a
-          >
-          <a
-            class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
-            href="#"
-            >Teams</a
-          >
-        </nav>
-      </div>
-      <div class="flex items-center gap-4">
-        <button
-          class="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-slate-200"
-        >
-          Developer
-        </button>
-        <button
-          class="px-4 py-1 text-xs font-bold bg-primary-container text-on-primary-container rounded-sm"
-        >
-          Manager
-        </button>
-        <div class="flex gap-2 ml-4">
-          <span
-            class="material-symbols-outlined text-slate-400 hover:bg-[#1C2128] p-2 rounded-full cursor-pointer transition-all duration-200 active:scale-95"
-            >notifications</span
-          >
-          <span
-            class="material-symbols-outlined text-slate-400 hover:bg-[#1C2128] p-2 rounded-full cursor-pointer transition-all duration-200 active:scale-95"
-            >settings</span
-          >
-        </div>
-        <img
-          alt="User Profile Avatar"
-          class="w-8 h-8 rounded-full border border-outline-variant"
-          data-alt="User profile avatar of a tech lead"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCg0BbtW4-Izu9SgUzx4Z50MAelLGfA8cDZTkGevY3l5yL7SmlOSzE5zagFWaikf2RjW-RugRdmL7wxVP2NyFxBVcEXrQ_4xD5IReh1Ft5VOcm_lhSvXWBaFMqXdTIQPHvlG1qreGrL9Ku6RGGt3diFhI9gTHnBW4U7d73QP8hAKHjMNPfgNN4lXb25WkP3NNfWJuYO9SweJxjJ0kQfsgFS60KnMhP7cmjS4P3fUyYZUsuEBDuS9hLB0ZRMHWI6d1yoJgrgXuMf64A"
-        />
-      </div>
-    </header>
-    <div class="flex pt-16 h-screen overflow-hidden">
-      <!-- SideNavBar Shared Component -->
-      <aside
-        class="bg-[#0B0E11] dark:bg-[#0B0E11] font-['Inter'] uppercase tracking-widest text-[10px] font-semibold docked left-0 h-full w-64 border-r border-white/5 flex flex-col py-4 space-y-2 fixed"
-      >
-        <div class="px-6 mb-8 flex items-center gap-3">
-          <div
-            class="w-8 h-8 bg-primary/20 flex items-center justify-center rounded-sm"
-          >
-            <span class="text-blue-500 font-black text-sm">DS</span>
-          </div>
-          <div>
-            <h2 class="text-on-surface text-[11px] leading-none">
-              Performance
-            </h2>
-            <span class="text-slate-500 text-[8px]">V2.4.0-Stable</span>
-          </div>
-        </div>
-        <nav class="flex-1 px-3 space-y-1">
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]">analytics</span>
-            <span>Overview</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-3 py-2 bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 transition-transform translate-x-1"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]">layers</span>
-            <span>Skill Matrix</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]"
-              >trending_up</span
-            >
-            <span>Performance Levels</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]">terminal</span>
-            <span>Git Analytics</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]">group</span>
-            <span>Peer Feedback</span>
-          </a>
-        </nav>
-        <div class="px-6 py-4 border-t border-white/5">
-          <button
-            class="w-full py-2 bg-primary/10 border border-primary/20 text-primary text-[10px] hover:bg-primary/20 transition-all rounded-sm uppercase font-bold tracking-widest"
-          >
-            Export Report
-          </button>
-        </div>
-        <div class="px-3 pb-4 space-y-1">
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]">menu_book</span>
-            <span>Documentation</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
-            href="#"
-          >
-            <span class="material-symbols-outlined text-[18px]"
-              >help_outline</span
-            >
-            <span>Support</span>
-          </a>
-        </div>
-      </aside>
-      <!-- Main Content Canvas -->
-      <main
-        class="flex-1 ml-64 flex flex-col md:flex-row overflow-hidden bg-background"
-      >
-        <!-- Left Side: Skill Evaluation Grid -->
-        <section
-          class="flex-1 p-8 lg:p-12 overflow-y-auto custom-scrollbar border-r border-white/5"
-        >
-          <header class="mb-12">
-            <div
-              class="flex items-center gap-2 text-primary text-[10px] font-bold tracking-[0.2em] uppercase mb-2"
-            >
-              <span class="material-symbols-outlined text-sm">terminal</span>
-              Developer Competency Assessment
-            </div>
-            <h1 class="text-4xl font-black tracking-tighter text-on-surface">
-              Code Reviews
-            </h1>
-            <p
-              class="text-on-surface-variant mt-2 max-w-xl text-sm leading-relaxed font-medium"
-            >
-              Evaluating the technical depth and constructive nature of feedback
-              provided during asynchronous peer reviews.
-            </p>
-          </header>
-          <div class="space-y-12">
-            <!-- Dreyfus Level 1 -->
-            <div class="relative group">
-              <div class="flex items-baseline gap-4 mb-5">
-                <span
-                  class="text-[10px] font-bold text-outline-variant tracking-[0.2em] uppercase"
-                  >Level 01</span
-                >
-                <h3 class="text-lg font-bold text-on-surface tracking-tight">
-                  Novice: Rule Following
-                </h3>
-              </div>
-              <div class="grid grid-cols-1 gap-3">
-                <label
-                  class="flex items-start gap-4 p-4 rounded bg-surface-container border border-white/5 hover:border-primary/30 transition-all cursor-pointer group/label"
-                >
-                  <input
-                    checked=""
-                    class="mt-1 rounded-sm bg-surface-container-low border-outline-variant text-primary focus:ring-primary focus:ring-offset-0"
-                    type="checkbox"
-                  />
-                  <div>
-                    <div
-                      class="text-sm font-bold text-on-surface group-hover/label:text-primary transition-colors"
-                    >
-                      Syntax &amp; Linting
-                    </div>
-                    <div
-                      class="text-[12px] text-on-surface-variant font-medium mt-0.5"
-                    >
-                      Consistently identifies basic style violations and syntax
-                      errors.
-                    </div>
-                  </div>
-                </label>
-                <label
-                  class="flex items-start gap-4 p-4 rounded bg-surface-container border border-white/5 hover:border-primary/30 transition-all cursor-pointer group/label"
-                >
-                  <input
-                    checked=""
-                    class="mt-1 rounded-sm bg-surface-container-low border-outline-variant text-primary focus:ring-primary focus:ring-offset-0"
-                    type="checkbox"
-                  />
-                  <div>
-                    <div
-                      class="text-sm font-bold text-on-surface group-hover/label:text-primary transition-colors"
-                    >
-                      Documentation Accuracy
-                    </div>
-                    <div
-                      class="text-[12px] text-on-surface-variant font-medium mt-0.5"
-                    >
-                      Verifies that function headers and comments match the
-                      implementation.
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            <!-- Dreyfus Level 2 -->
-            <div class="relative group">
-              <div class="flex items-baseline gap-4 mb-5">
-                <span
-                  class="text-[10px] font-bold text-outline-variant tracking-[0.2em] uppercase"
-                  >Level 02</span
-                >
-                <h3 class="text-lg font-bold text-on-surface tracking-tight">
-                  Advanced Beginner: Context Awareness
-                </h3>
-              </div>
-              <div class="grid grid-cols-1 gap-3">
-                <label
-                  class="flex items-start gap-4 p-4 rounded bg-surface-container border border-white/5 hover:border-primary/30 transition-all cursor-pointer group/label"
-                >
-                  <input
-                    class="mt-1 rounded-sm bg-surface-container-low border-outline-variant text-primary focus:ring-primary focus:ring-offset-0"
-                    type="checkbox"
-                  />
-                  <div>
-                    <div
-                      class="text-sm font-bold text-on-surface group-hover/label:text-primary transition-colors"
-                    >
-                      Edge Case Detection
-                    </div>
-                    <div
-                      class="text-[12px] text-on-surface-variant font-medium mt-0.5"
-                    >
-                      Identifies obvious missing null checks or unhandled empty
-                      states.
-                    </div>
-                  </div>
-                </label>
-                <label
-                  class="flex items-start gap-4 p-4 rounded bg-surface-container border border-white/5 hover:border-primary/30 transition-all cursor-pointer group/label"
-                >
-                  <input
-                    checked=""
-                    class="mt-1 rounded-sm bg-surface-container-low border-outline-variant text-primary focus:ring-primary focus:ring-offset-0"
-                    type="checkbox"
-                  />
-                  <div>
-                    <div
-                      class="text-sm font-bold text-on-surface group-hover/label:text-primary transition-colors"
-                    >
-                      DRY Principle Application
-                    </div>
-                    <div
-                      class="text-[12px] text-on-surface-variant font-medium mt-0.5"
-                    >
-                      Suggests refactoring when duplicate logic is observed in
-                      the same module.
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            <!-- Dreyfus Level 3: Guttman "Premature Peak" Example -->
-            <div class="relative group">
-              <div class="flex items-baseline gap-4 mb-5">
-                <span
-                  class="text-[10px] font-bold text-outline-variant tracking-[0.2em] uppercase"
-                  >Level 03</span
-                >
-                <h3 class="text-lg font-bold text-on-surface tracking-tight">
-                  Competent: Goal-Oriented Review
-                </h3>
-              </div>
-              <div class="grid grid-cols-1 gap-3">
-                <label
-                  class="flex items-start gap-4 p-4 rounded bg-[#2D2811]/40 border border-yellow-500/20 hover:border-yellow-500/40 transition-all cursor-pointer relative overflow-hidden group/label"
-                >
-                  <div
-                    class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500/50"
-                  ></div>
-                  <input
-                    checked=""
-                    class="mt-1 rounded-sm bg-surface-container-low border-yellow-500/50 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0"
-                    type="checkbox"
-                  />
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                      <div class="text-sm font-bold text-yellow-500">
-                        Performance Profiling
-                      </div>
-                      <span
-                        class="text-[8px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter"
-                        >Premature Peak</span
-                      >
-                    </div>
-                    <div
-                      class="text-[12px] text-on-surface-variant font-medium mt-0.5"
-                    >
-                      Flags O(n²) operations or redundant database queries
-                      before being asked.
-                    </div>
-                  </div>
-                  <span
-                    class="material-symbols-outlined text-yellow-500 text-lg opacity-60"
-                    title="Higher level skill checked before base competency"
-                    >warning</span
-                  >
-                </label>
-              </div>
-            </div>
-            <!-- Dreyfus Level 4 & 5 (Skeleton/Locked) -->
-            <div
-              class="relative group opacity-40 grayscale transition-all hover:opacity-60"
-            >
-              <div class="flex items-baseline gap-4 mb-5">
-                <span
-                  class="text-[10px] font-bold text-outline-variant tracking-[0.2em] uppercase"
-                  >Level 04 &amp; 05</span
-                >
-                <h3 class="text-lg font-bold text-on-surface tracking-tight">
-                  Proficient &amp; Expert
-                </h3>
-              </div>
-              <div class="grid grid-cols-1 gap-3">
-                <div
-                  class="p-10 border-2 border-dashed border-outline-variant/30 rounded flex flex-col items-center justify-center text-center bg-surface-container/30"
-                >
-                  <span
-                    class="material-symbols-outlined text-4xl text-outline-variant/40 mb-3"
-                    >lock</span
-                  >
-                  <div
-                    class="text-[10px] font-black text-outline-variant/60 uppercase tracking-[0.3em]"
-                  >
-                    Locked: Interaction Required
-                  </div>
-                  <div
-                    class="text-[9px] text-outline-variant/40 mt-1 uppercase font-bold"
-                  >
-                    Complete lower levels to unlock advanced metrics
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        <!-- Right Side: Evaluation Controls (Sticky Sidebar) -->
-        <aside
-          class="w-full md:w-[400px] border-l border-white/5 bg-surface-container-low p-8 flex flex-col relative overflow-y-auto custom-scrollbar"
-        >
-          <div class="sticky top-0 flex flex-col h-full">
-            <!-- Score Display -->
-            <div class="mb-10">
-              <div
-                class="text-[10px] font-black text-primary tracking-[0.3em] uppercase mb-6 flex items-center gap-2"
-              >
-                <span
-                  class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_#5eb4ff]"
-                ></span>
-                Live UI Estimate
-              </div>
-              <div class="flex items-baseline gap-2">
-                <span
-                  class="text-8xl font-black text-on-surface tracking-tighter"
-                  >1.6</span
-                >
-                <span class="text-xl font-bold text-primary-dim opacity-60"
-                  >/ 5.0</span
-                >
-              </div>
-              <div
-                class="w-full h-1.5 bg-surface-container-highest mt-8 relative overflow-hidden rounded-full"
-              >
-                <div
-                  class="absolute inset-y-0 left-0 bg-primary w-[32%] shadow-[0_0_15px_rgba(94,180,255,0.6)]"
-                ></div>
-              </div>
-              <div
-                class="flex justify-between mt-3 text-[9px] font-black text-outline-variant uppercase tracking-widest"
-              >
-                <span>Min Threshold</span>
-                <span>Current Baseline</span>
-              </div>
-            </div>
-            <!-- Controls -->
-            <div class="space-y-10 flex-1">
-              <div>
-                <label
-                  class="block text-[10px] font-black text-on-surface-variant tracking-[0.2em] uppercase mb-4"
-                  >Evaluator Rationale</label
-                >
-                <textarea
-                  class="w-full h-40 bg-[#0B0E11] border border-white/10 focus:border-primary/50 focus:ring-0 text-sm p-4 text-on-surface placeholder:text-outline-variant/40 resize-none rounded-sm transition-colors"
-                  placeholder="Provide technical evidence for specific checkbox selections..."
-                ></textarea>
-              </div>
-              <div
-                class="p-6 bg-surface-container rounded border border-white/5 glow-primary"
-              >
-                <div class="flex justify-between items-center mb-6">
-                  <label
-                    class="text-[10px] font-black text-on-surface tracking-[0.2em] uppercase"
-                    >Manual Evaluator Mark</label
-                  >
-                  <span
-                    class="px-2.5 py-1 bg-error/10 text-error text-[9px] font-black uppercase tracking-tighter rounded border border-error/20 flex items-center gap-1.5"
-                  >
-                    <span class="material-symbols-outlined text-[12px]"
-                      >lock</span
-                    >
-                    Locked (42% Int.)
-                  </span>
-                </div>
-                <!-- Manual Slider -->
-                <div
-                  class="relative py-6 grayscale opacity-30 cursor-not-allowed group/slider"
-                >
-                  <input
-                    class="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-not-allowed accent-primary"
-                    disabled=""
-                    max="5"
-                    min="1"
-                    step="0.5"
-                    type="range"
-                    value="1.5"
-                  />
-                  <div
-                    class="flex justify-between mt-6 text-[10px] font-black text-outline-variant px-1 font-mono"
-                  >
-                    <span>1.0</span>
-                    <span>2.0</span>
-                    <span>3.0</span>
-                    <span>4.0</span>
-                    <span>5.0</span>
-                  </div>
-                </div>
-                <div class="mt-6 pt-4 border-t border-white/5">
-                  <p class="text-[10px] text-outline-variant leading-relaxed">
-                    <span
-                      class="text-error font-black uppercase tracking-tighter mr-1"
-                      >Bias Mitigation:</span
-                    >
-                    Manual Mark is locked until 50% of the checklist is
-                    completed to ensure data-driven calibration.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <!-- Footer Action -->
-            <div class="mt-12 pt-8 border-t border-white/5">
-              <button
-                class="w-full py-4 bg-primary text-on-primary-fixed text-[11px] font-black uppercase tracking-[0.3em] rounded-sm hover:shadow-[0_0_20px_rgba(94,180,255,0.4)] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
-              >
-                Save Progress
-                <span class="material-symbols-outlined text-sm"
-                  >arrow_forward</span
-                >
-              </button>
-            </div>
-          </div>
-        </aside>
-      </main>
-    </div>
-    <!-- Floating Status Indicator -->
-    <div
-      class="fixed bottom-6 left-[18rem] bg-surface-container-highest/80 backdrop-blur-xl border border-white/10 px-5 py-3 rounded-full flex items-center gap-4 shadow-2xl z-50"
-    >
-      <div class="flex -space-x-2">
-        <img
-          alt="Peer"
-          class="w-7 h-7 rounded-full border-2 border-[#0B0E11]"
-          data-alt="Small profile thumbnail of peer reviewer 1"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhC-yZoifxTIQwJ7d7tVdV7Qdv_T6a6HRyEzFwJQ084pDwQw99ZaDqVUg9_ffAO-zyck6UOMBbf1AkENwmHSeM3SPgwpC9gq9HbFk3JPcySMzxORWnpc0HlPSd7ZiYe8HSaviZRkvWXwKJ_-s6WpWXrUDdhkWvfi2BFoyAYG3BoyYSQO2hKwk4k68IZMBozqu5HZh87cyyGZFWmWof09l4qzMzf9u-vM2L40WYQbmEq6W5PCr9VVKG690raS-PzHiRQZIIsYlZfk8"
-        />
-        <img
-          alt="Peer"
-          class="w-7 h-7 rounded-full border-2 border-[#0B0E11]"
-          data-alt="Small profile thumbnail of peer reviewer 2"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvDzFTJVkf2dxJYHeapGgfxEc6xQgkjiRhwGvbU4av9OGCJrpF5m2vlkrC4vj5rMHy6Y1TOEvjS_Hix3mGrMwxhDCh5amZqzQCxqe85N-Cg_e4q4cOstkesm0OYa2A7zgqToM0EtxAHMBjqD9LzHy8-3dMMyv8rvsjiXiACA7zrVUVWX95ZJFmAaN9uRuZIyasuwhdAsiC7q2jtBz0Sjr6t6nv7pM43Kp7F59xA4sJdLfJ_EYMHq9oC9CazVpYBjjJbS5eD4gNf5o"
-        />
-      </div>
-      <div class="h-5 w-px bg-white/10"></div>
-      <div class="text-[10px] text-on-surface font-semibold tracking-tight">
-        <span class="text-primary font-black">2 Peers</span> viewing live
-      </div>
-    </div>
-  </body>
-</html>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-container": "#2e0075",
+                        "surface-tint": "#5eb4ff",
+                        "tertiary-dim": "#ab8bf9",
+                        "background": "#0b0e11",
+                        "error": "#ff716c",
+                        "outline-variant": "#45484c",
+                        "tertiary-fixed": "#bca2ff",
+                        "surface": "#0b0e11",
+                        "on-tertiary": "#3a1482",
+                        "inverse-primary": "#00639e",
+                        "secondary": "#599ffb",
+                        "on-tertiary-fixed-variant": "#43208b",
+                        "on-error-container": "#ffa8a3",
+                        "error-dim": "#d7383b",
+                        "tertiary-fixed-dim": "#b091ff",
+                        "on-error": "#490006",
+                        "on-primary-fixed-variant": "#002e4d",
+                        "primary": "#5eb4ff",
+                        "tertiary-container": "#b091ff",
+                        "primary-container": "#2aa7ff",
+                        "outline": "#737679",
+                        "surface-container-lowest": "#000000",
+                        "on-primary-fixed": "#000000",
+                        "surface-container-high": "#1c2024",
+                        "on-primary-container": "#00253f",
+                        "surface-container": "#161a1e",
+                        "on-secondary-container": "#f6f7ff",
+                        "surface-container-highest": "#22262b",
+                        "tertiary": "#bca2ff",
+                        "on-secondary": "#002043",
+                        "on-secondary-fixed": "#003466",
+                        "primary-fixed-dim": "#0099f0",
+                        "on-background": "#f8f9fe",
+                        "on-surface": "#f8f9fe",
+                        "secondary-dim": "#599ffb",
+                        "on-primary": "#003151",
+                        "secondary-fixed-dim": "#a1c5ff",
+                        "secondary-container": "#005fb0",
+                        "on-surface-variant": "#a9abaf",
+                        "inverse-surface": "#f8f9fe",
+                        "surface-variant": "#22262b",
+                        "on-tertiary-fixed": "#1e0053",
+                        "surface-dim": "#0b0e11",
+                        "surface-container-low": "#101417",
+                        "primary-dim": "#15a4ff",
+                        "primary-fixed": "#2aa7ff",
+                        "inverse-on-surface": "#535559",
+                        "surface-bright": "#282d31",
+                        "on-secondary-fixed-variant": "#005197",
+                        "secondary-fixed": "#b9d3ff",
+                        "error-container": "#9f0519"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary/30 selection:text-primary min-h-screen">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 z-40 bg-slate-900 flex flex-col py-6 gap-2 border-r border-slate-800">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-sm">hub</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-blue-500 leading-none">DevSync</h1>
+<span class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Cyber-Metric v2.5</span>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-6 py-3 gap-4 text-slate-500 hover:text-slate-300 transition-all duration-200 ease-in-out hover:bg-slate-800/50 group" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<span class="text-sm font-medium uppercase tracking-widest">Dashboard</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-4 bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-xl">hub</span>
+<span class="text-sm font-medium uppercase tracking-widest">Skill Matrix</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-4 text-slate-500 hover:text-slate-300 transition-all duration-200 ease-in-out hover:bg-slate-800/50 group" href="#">
+<span class="material-symbols-outlined text-xl">analytics</span>
+<span class="text-sm font-medium uppercase tracking-widest">Evaluations</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-4 text-slate-500 hover:text-slate-300 transition-all duration-200 ease-in-out hover:bg-slate-800/50 group" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<span class="text-sm font-medium uppercase tracking-widest">Team Insights</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-4 text-slate-500 hover:text-slate-300 transition-all duration-200 ease-in-out hover:bg-slate-800/50 group" href="#">
+<span class="material-symbols-outlined text-xl">terminal</span>
+<span class="text-sm font-medium uppercase tracking-widest">Repository</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full py-3 bg-primary-container text-on-primary-container font-bold text-xs uppercase tracking-widest rounded-lg active:scale-95 duration-150">
+                Submit Evaluation
+            </button>
+<div class="mt-6 pt-6 border-t border-slate-800 space-y-4">
+<a class="flex items-center gap-3 text-slate-500 hover:text-slate-300 transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">sensors</span>
+<span class="text-[10px] uppercase tracking-widest">System Status</span>
+</a>
+<a class="flex items-center gap-3 text-slate-500 hover:text-slate-300 transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">menu_book</span>
+<span class="text-[10px] uppercase tracking-widest">Documentation</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50 shadow-2xl shadow-blue-900/10 flex items-center justify-between px-8 h-16">
+<div class="flex items-center gap-4">
+<div class="h-8 w-[2px] bg-primary"></div>
+<h2 class="font-sans antialiased tracking-tight font-bold text-slate-50 uppercase text-xs tracking-widest">Evaluation Workspace: <span class="text-blue-400">Alex Chen</span></h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full border border-outline-variant/20">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">Active Session</span>
+</div>
+<div class="flex items-center gap-4 text-slate-400">
+<span class="material-symbols-outlined hover:text-blue-300 transition-colors cursor-pointer active:scale-95 duration-150">notifications</span>
+<span class="material-symbols-outlined hover:text-blue-300 transition-colors cursor-pointer active:scale-95 duration-150">settings</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/20 overflow-hidden">
+<img alt="User Technical Lead Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6hZMLL-HMBNP62O5iOnr4rdSWx0hvU-WlSUUpqH77C-a3sRBr0B0nIaeJCC8LJNvXBT5xk4MdYETkCbmpHUzGupjvaSKHnpg5gsvkD-3tZqpYX0YFUBF-8ixLjQGqP6B6JIlgw5Fs7dj6ZDhYPOORu3oMrYMWOJaJlwOwCK9V9hzDnZWOSfqyeQPowh52EC-Wtu8eghx6By4pRgvdZH0sag9p7nukXUGFqJgs9vugPyW8ZiB1S19KH6mpzD2n5NJbH4No_BqwWs4"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-8 space-y-8">
+<!-- Top Section: Stats Summary -->
+<section class="grid grid-cols-12 gap-6">
+<!-- Mini Radar -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 relative overflow-hidden">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-on-surface-variant text-[10px] uppercase tracking-[0.3em] font-bold">Skill Geometry</h3>
+</div>
+</div>
+<div class="flex justify-center items-center h-32 relative">
+<svg class="w-full h-full text-primary/20 stroke-current fill-none" viewbox="0 0 100 100">
+<polygon points="50,10 90,40 75,90 25,90 10,40" stroke-width="1"></polygon>
+<line stroke-width="0.5" x1="50" x2="50" y1="50" y2="10"></line>
+</svg>
+<svg class="absolute inset-0 w-full h-full text-primary stroke-current fill-primary/10" viewbox="0 0 100 100">
+<polygon points="50,15 85,38 70,85 30,80 15,35" stroke-width="1.5"></polygon>
+</svg>
+</div>
+<div class="mt-4 flex justify-between items-center">
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Aggregated Calc.</span>
+<span class="text-xl font-black text-primary">92%</span>
+</div>
+</div>
+<!-- Workplace Instructions -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container p-6 rounded-xl border border-primary/20 flex flex-col justify-center">
+<div class="flex items-center gap-4 mb-4">
+<span class="material-symbols-outlined text-primary text-3xl">edit_note</span>
+<div>
+<h3 class="text-lg font-black tracking-tight">Evaluator Workspace</h3>
+<p class="text-xs text-on-surface-variant">Review the criteria below. Click items to toggle fulfillment status. Assign manual marks and provide qualitative feedback for each dimension.</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4 border-t border-outline-variant/20 pt-4">
+<div class="text-center border-r border-outline-variant/20">
+<div class="text-[10px] uppercase text-on-surface-variant font-bold mb-1">Status</div>
+<div class="text-sm font-bold text-green-500 uppercase">In Progress</div>
+</div>
+<div class="text-center border-r border-outline-variant/20">
+<div class="text-[10px] uppercase text-on-surface-variant font-bold mb-1">Manual Marks</div>
+<div class="text-sm font-bold">2 / 5 Assigned</div>
+</div>
+<div class="text-center">
+<div class="text-[10px] uppercase text-on-surface-variant font-bold mb-1">Peer Visibility</div>
+<div class="text-sm font-bold text-primary uppercase">Private Draft</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Workspace Heatmaps -->
+<section class="space-y-12">
+<!-- Skill Section: Code Reviews & Mentorship -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/10 shadow-lg">
+<div class="p-6 bg-surface-container-high flex items-center justify-between border-b border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary" data-weight="fill">rate_review</span>
+</div>
+<div>
+<h4 class="text-xl font-black tracking-tight uppercase">Code Reviews &amp; Mentorship</h4>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Dimension Focus: Quality &amp; Depth, Frequency</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-end">
+<span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-tighter mb-1">Evaluator Mark (1-5)</span>
+<input class="w-16 h-10 bg-surface-container border border-primary/30 rounded text-center font-black text-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" max="5" min="1" type="number" value="4"/>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div class="text-right">
+<span class="text-[9px] font-bold text-on-surface-variant block uppercase tracking-tighter mb-1">UI-Calculated Level</span>
+<span class="text-3xl font-black text-on-surface/50">L4.2</span>
+</div>
+</div>
+</div>
+<div class="p-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-1 bg-surface-container-lowest">
+<!-- L1 -->
+<div class="bg-surface-container/50 p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-on-surface-variant tracking-[0.2em] block text-center mb-2">L1: Beginner</span>
+<div class="space-y-2">
+<input checked="" class="hidden skill-item-checkbox" id="cr-1-1" type="checkbox"/>
+<label class="flex flex-col p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-1-1">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-bold">Provide basic feedback</span>
+</div>
+<div class="ml-6 mt-1.5 space-y-1">
+<div class="flex items-center gap-1.5 opacity-60">
+<div class="w-1 h-1 rounded-full bg-primary/40"></div>
+<span class="text-[9px]">Syntax &amp; naming</span>
+</div>
+<div class="flex items-center gap-1.5 opacity-60">
+<div class="w-1 h-1 rounded-full bg-primary/40"></div>
+<span class="text-[9px]">Readability</span>
+</div>
+</div>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="cr-1-2" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-1-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Project coding standards</span>
+</label>
+</div>
+</div>
+<!-- L2 -->
+<div class="bg-surface-container/50 p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-on-surface-variant tracking-[0.2em] block text-center mb-2">L2: Intermediate</span>
+<div class="space-y-2">
+<input checked="" class="hidden skill-item-checkbox" id="cr-2-1" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-2-1">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Identifies logic flaws</span>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="cr-2-2" type="checkbox"/>
+<label class="flex flex-col p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-2-2">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-bold">Mentoring Basics</span>
+</div>
+<div class="ml-6 mt-1.5 space-y-1">
+<div class="flex items-center gap-1.5 opacity-60">
+<div class="w-1 h-1 rounded-full bg-primary/40"></div>
+<span class="text-[9px]">Active reviewer role</span>
+</div>
+</div>
+</label>
+</div>
+</div>
+<!-- L3 -->
+<div class="bg-surface-container/50 p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-on-surface-variant tracking-[0.2em] block text-center mb-2">L3: Advanced</span>
+<div class="space-y-2">
+<input checked="" class="hidden skill-item-checkbox" id="cr-3-1" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-3-1">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Catches race conditions</span>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="cr-3-2" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-3-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Evaluates Big O complexity</span>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="cr-3-3" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-3-3">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Suggests design patterns</span>
+</label>
+</div>
+</div>
+<!-- L4 -->
+<div class="bg-surface-container-high p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-primary tracking-[0.2em] block text-center mb-2">L4: Expert</span>
+<div class="space-y-2">
+<input checked="" class="hidden skill-item-checkbox" id="cr-4-1" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-4-1">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Cross-service alignment</span>
+</label>
+<input class="hidden skill-item-checkbox" id="cr-4-2" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-4-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">circle</span>
+<span class="text-[11px] font-medium leading-tight text-on-surface-variant">Junior 'Deep Sync' training</span>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="cr-4-3" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-4-3">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Authors team-wide PR guides</span>
+</label>
+</div>
+</div>
+<!-- L5 -->
+<div class="bg-surface-container/50 p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-on-surface-variant tracking-[0.2em] block text-center mb-2">L5: Leading Expert</span>
+<div class="space-y-2">
+<input class="hidden skill-item-checkbox" id="cr-5-1" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-5-1">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">circle</span>
+<span class="text-[11px] font-medium leading-tight text-on-surface-variant">Automates 90% via AI</span>
+</label>
+<input class="hidden skill-item-checkbox" id="cr-5-2" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="cr-5-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">circle</span>
+<span class="text-[11px] font-medium leading-tight text-on-surface-variant">Influences industry standards</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Evaluation Feedback Sections -->
+<div class="p-6 bg-surface-container-low border-t border-outline-variant/10 grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">sentiment_satisfied</span>
+                                Qualitative Feedback &amp; Encouragement
+                            </label>
+<textarea class="w-full h-24 bg-surface-container-high border border-outline-variant/20 rounded-lg p-3 text-xs text-on-surface focus:ring-1 focus:ring-primary focus:outline-none placeholder:text-on-surface-variant/40 resize-none" placeholder="Provide positive context on their mentorship impact..."></textarea>
+</div>
+<div class="space-y-2">
+<label class="text-[10px] font-black uppercase tracking-widest text-error flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">flag</span>
+                                Actionable Points for Improvement
+                            </label>
+<textarea class="w-full h-24 bg-surface-container-high border border-outline-variant/20 rounded-lg p-3 text-xs text-on-surface focus:ring-1 focus:ring-error focus:outline-none placeholder:text-on-surface-variant/40 resize-none" placeholder="Identify specific gaps in junior training methods..."></textarea>
+</div>
+</div>
+</div>
+<!-- Skill Section: Scalable Systems Architecture -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/10 shadow-lg">
+<div class="p-6 bg-surface-container-high flex items-center justify-between border-b border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary" data-weight="fill">hub</span>
+</div>
+<div>
+<h4 class="text-xl font-black tracking-tight uppercase">Scalable System Architecture</h4>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Dimension Focus: Reliability, Cloud Native</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-end">
+<span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-tighter mb-1">Evaluator Mark (1-5)</span>
+<input class="w-16 h-10 bg-surface-container border border-primary/30 rounded text-center font-black text-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" max="5" min="1" type="number" value="5"/>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div class="text-right">
+<span class="text-[9px] font-bold text-on-surface-variant block uppercase tracking-tighter mb-1">UI-Calculated Level</span>
+<span class="text-3xl font-black text-on-surface/50">L5.0</span>
+</div>
+</div>
+</div>
+<div class="p-1 grid grid-cols-1 md:grid-cols-5 gap-1 bg-surface-container-lowest">
+<div class="bg-surface-container/30 p-4 flex items-center justify-center border border-outline-variant/5">
+<span class="text-[9px] font-bold text-green-500/50 uppercase tracking-widest">L1: Verified</span>
+</div>
+<div class="bg-surface-container/30 p-4 flex items-center justify-center border border-outline-variant/5">
+<span class="text-[9px] font-bold text-green-500/50 uppercase tracking-widest">L2: Verified</span>
+</div>
+<div class="bg-surface-container/30 p-4 flex items-center justify-center border border-outline-variant/5">
+<span class="text-[9px] font-bold text-green-500/50 uppercase tracking-widest">L3: Verified</span>
+</div>
+<div class="bg-surface-container/30 p-4 flex items-center justify-center border border-outline-variant/5">
+<span class="text-[9px] font-bold text-green-500/50 uppercase tracking-widest">L4: Verified</span>
+</div>
+<div class="bg-surface-container-high p-4 space-y-3">
+<span class="text-[9px] font-black uppercase text-primary tracking-[0.2em] block text-center mb-2">L5: Leading Expert</span>
+<div class="space-y-2">
+<input checked="" class="hidden skill-item-checkbox" id="sys-5-1" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="sys-5-1">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Multi-region failover automation</span>
+</label>
+<input checked="" class="hidden skill-item-checkbox" id="sys-5-2" type="checkbox"/>
+<label class="flex items-start gap-2 p-3 rounded border border-outline-variant/10 cursor-pointer hover:bg-surface-variant transition-all select-none" for="sys-5-2">
+<span class="material-symbols-outlined text-[16px] check-icon transition-colors">check_circle</span>
+<span class="text-[11px] font-medium leading-tight">Custom orchestration frameworks</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Evaluation Feedback Sections -->
+<div class="p-6 bg-surface-container-low border-t border-outline-variant/10 grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">sentiment_satisfied</span>
+                                Qualitative Feedback &amp; Encouragement
+                            </label>
+<textarea class="w-full h-24 bg-surface-container-high border border-outline-variant/20 rounded-lg p-3 text-xs text-on-surface focus:ring-1 focus:ring-primary focus:outline-none placeholder:text-on-surface-variant/40 resize-none" placeholder="Note architectural excellence in recent projects..."></textarea>
+</div>
+<div class="space-y-2">
+<label class="text-[10px] font-black uppercase tracking-widest text-error flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">flag</span>
+                                Actionable Points for Improvement
+                            </label>
+<textarea class="w-full h-24 bg-surface-container-high border border-outline-variant/20 rounded-lg p-3 text-xs text-on-surface focus:ring-1 focus:ring-error focus:outline-none placeholder:text-on-surface-variant/40 resize-none" placeholder="Identify future system bottlenecks to address..."></textarea>
+</div>
+</div>
+</div>
+<!-- Skill Section Placeholder: Technology Knowledge -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/5 opacity-80">
+<div class="p-6 bg-surface-container-high flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary" data-weight="fill">database</span>
+</div>
+<div>
+<h4 class="text-xl font-black tracking-tight uppercase">Technology Knowledge</h4>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Dimension Focus: Stack Depth, Emerging Tech</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-end">
+<span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-tighter mb-1">Evaluator Mark</span>
+<input class="w-16 h-10 bg-surface-container border border-outline-variant/30 rounded text-center font-black text-on-surface-variant focus:ring-1 focus:ring-primary focus:outline-none transition-all" max="5" min="1" type="number"/>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div class="text-right">
+<span class="text-[9px] font-bold text-on-surface-variant block uppercase tracking-tighter mb-1">UI-Calculated Level</span>
+<span class="text-3xl font-black text-on-surface/30">L3.8</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Action Bar / Status -->
+<footer class="mt-12 flex items-center justify-between p-6 bg-surface-container-high rounded-xl border border-primary/10">
+<div class="flex items-center gap-8">
+<div>
+<div class="text-[10px] font-black uppercase text-on-surface-variant tracking-widest mb-1">Diagnostic Context</div>
+<div class="text-sm font-bold">Annual Performance Review Q3</div>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div>
+<div class="text-[10px] font-black uppercase text-on-surface-variant tracking-widest mb-1">Assigned Evaluator</div>
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest border border-primary/20 overflow-hidden">
+<img alt="Evaluator" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr21FjvXWf1ZOr9Fq2m5PlOQH-Qc-KuSheEiCWrAcSXV1hlJZTNnf8okR8QpZ5QHg3RAQ1NU5EfGkwkQXGRkyCxT084tNEU1mlcMzRe5PyD6zScxBiL60xEU-8nkNF3mAFg6QVOp74AlUkT6W9ENNFdy0G2GwtutmegiODNQDbgJFcVemb-aLgVxTElF1xNOeEEd2aDpE7lERy8GW-Wx4e34ijVFLb2ra9ti2GbIjuaUvHaEOeHLMHkBFkr93EFnizSEey4CpJ_cE"/>
+</div>
+<span class="text-xs font-bold uppercase tracking-tighter">Sarah Jenkins (Engineering Manager)</span>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-2 bg-surface-container border border-outline-variant/30 hover:bg-surface-variant text-[10px] font-black uppercase tracking-widest transition-colors rounded active:scale-95 duration-150">Save Draft</button>
+<button class="px-8 py-2 bg-primary text-on-primary text-[10px] font-black uppercase tracking-widest rounded shadow-lg shadow-primary/20 active:scale-95 duration-150">Finalize &amp; Submit</button>
+</div>
+</footer>
+</div>
+</main>
+</body></html>

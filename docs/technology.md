@@ -10,6 +10,7 @@
 
 * **`lib/skill-rubric-common.ts`** — Shared 1–5 level definitions and types (`SkillCompetency`, criteria nesting).
 * **`lib/hard-skills-rubric.ts`**, **`lib/soft-skills-rubric.ts`** — Full competency trees for evaluation UI and (later) Convex seeding.
+* **`lib/roster-presets/burger.ts`** — Emplifi “Burger” team: manager + five evaluators (slugs, display names, emails for invites). Drives `users.seedRoster` from the manager UI.
 * **`lib/skill-checkpoints.ts`** — Deterministic checkpoint IDs per competency (`competencyToCheckpoints`).
 * **`lib/scoring.ts`** — Foundation-first + spike UI estimate (`computeFoundationFirstUiEstimate`); covered by `npm test`.
 * **Static UI references:** `docs/skill-evaluation.html`, `docs/developer-dashboard.html` — HTML prototypes aligned with [design-document.md §6.2](./design-document.md) patterns; port to App Router components when wiring the live matrix.
@@ -19,28 +20,33 @@ Defined in `convex/schema.ts`. Convex is schemaless by default, but defining a s
 
 | Table | Purpose | Key Fields |
 | :--- | :--- | :--- |
-| **`sessions`** | State of the current live call | `activeEvaluatorId`, `status` (lobby/active/finished), `managerVerdict` |
-| **`users`** | Participants in the call | `name`, `role` (manager/evaluator), `slug` (unique ID for login) |
-| **`evaluations`** | The checkbox data | `evaluatorId`, `subjectId`, `criteria` (Object: `{task1: bool, task2: bool}`), `timestamp` |
+| **`sessions`** | Prepare-then-reveal FSM for one room | `slug` (e.g. `default`), `phase` (`preparation` / `live` / `finished`), `activeEvaluatorId`, `activeRevealSkillId`, `managerVerdict` |
+| **`users`** | Participants in the room | `sessionId`, `name`, `role` (manager/evaluator), `slug` (unique per session) |
+| **`evaluations`** | Per skill matrix cell | `evaluatorId`, `subjectId`, `skillId`, `checkpoints` (record of checkpoint id → checked), `manualMark`, `rationale`, `updatedAt` |
 
 ## 4. API Surface (Convex Functions)
 
+Modules: `convex/session.ts`, `convex/users.ts`, `convex/evaluations.ts` (paths become `api.session.*`, `api.users.*`, `api.evaluations.*`).
+
 ### Queries (Read Data)
-* **`getSession`**: Fetches the current state of the room (who is currently evaluating).
-* **`listUsers`**: Gets the list of 5 users for the manager to pick from.
-* **`getLiveScores`**: Aggregates checkbox progress so the manager sees the "progress bars" in real-time.
+* **`session.getSession`**: Fetches session row by `slug` (default `default`).
+* **`users.listUsers`**: Lists users for a `sessionId`.
+* **`evaluations.getLiveScores`**: Returns evaluation rows plus a coarse per-subject checkpoint summary for manager “progress” views.
+* **`evaluations.listEvaluationsForSession`**: Raw rows for a session (e.g. custom aggregations).
 
 ### Mutations (Write Data)
-* **`joinSession`**: Simple entry point that assigns a name to a user slug.
-* **`pickNextEvaluator`**: (Manager Only) Updates `sessions.activeEvaluatorId`.
-* **`updateCheckboxes`**: (Evaluator Only) Updates the `criteria` object for the current evaluation.
-* **`submitVerdict`**: (Manager Only) Saves the final decision and ends the round.
+* **`session.ensureSession`**: Creates the session row for a slug if missing (bootstrap).
+* **`session.setSessionPhase`**: Manager FSM: `preparation` → `live` → `finished`.
+* **`users.joinSession`**: Assigns or updates `name` / `role` for a slug in a session.
+* **`session.pickNextEvaluator`**: (Manager) Sets `sessions.activeEvaluatorId`.
+* **`evaluations.updateCheckboxes`**: Merges checkpoint toggles; optional `manualMark` and `rationale` (design doc §6.1).
+* **`session.submitVerdict`**: (Manager) Saves verdict and sets phase `finished`.
 
 ## 5. MVP "Shortcut" Authentication
 To avoid the complexity of Auth0 or NextAuth:
-1.  **Manager Access:** Access via a hardcoded environment variable URL (e.g., `yourapp.com/admin-dashboard-7721`).
-2.  **User Access:** Manager generates 5 unique slugs (e.g., `/eval/user-1`).
-3.  **Persistence:** On first visit, the user enters their name. Store the `userId` in `localStorage`. 
+1.  **Manager access:** Control room at **`/room/driver`** (obscure path). Optionally set server env **`MANAGER_ACCESS_KEY`** and open **`/room/driver?k=…`** so the query must match (see `.env.local.example`).
+2.  **Evaluator access:** One URL per participant, e.g. **`/eval/dev-1`** — swap the last segment for each slug the manager hands out.
+3.  **Persistence:** On first visit, the evaluator enters their name; Convex `users.joinSession` runs and the returned **`userId`** is stored in **`localStorage`** (key includes session slug + evaluator slug; see `lib/devsync-constants.ts`).
 4.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
 
 ## 6. Real-time Logic Flow (The "Convex way")
@@ -48,7 +54,7 @@ Instead of `useEffect` and `fetch`, the UI will use the `useQuery` hook:
 
 ```typescript
 // Inside a React Component
-const session = useQuery(api.evaluations.getSession);
+const session = useQuery(api.session.getSession, {});
 const updateScore = useMutation(api.evaluations.updateCheckboxes);
 
 // If the manager changes the evaluator in the DB, 

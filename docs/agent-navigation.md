@@ -43,6 +43,7 @@
 | Discrepancy highlight, manual-mark gating | [design-document.md §7](./design-document.md) |
 | Trace requirements to implementation | [design-document.md §8](./design-document.md) |
 | Stack choice, Convex schema/functions, MVP auth, build/deploy commands | [technology.md](./technology.md) |
+| Preset team roster (Burger), evaluator slugs / seeding | [technology.md §2](./technology.md) · `lib/roster-presets/burger.ts` |
 | Visual language, surface hierarchy, “no-line” layout, editorial density, chart line weights | [DESIGN.md](./DESIGN.md) |
 | Concrete hex/theme, app shell dimensions, heatmap/radar/checkbox styling, Tailwind/Material Symbols for build | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) |
 | Evaluator skill matrix UI (checkbox tree, manual mark, rationale) — reference implementation | [skill-evaluation.html](./skill-evaluation.html) |

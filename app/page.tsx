@@ -1,3 +1,9 @@
+import Link from "next/link";
+import {
+  BURGER_EVALUATOR_SLUGS,
+  BURGER_ROSTER,
+} from "@/lib/roster-presets/burger";
+
 export default function Home() {
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
@@ -22,6 +28,64 @@ export default function Home() {
             npm run dev
           </code>
           .
+        </p>
+        <ul className="mt-8 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
+          <li>
+            <Link
+              href="/room/driver"
+              className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 hover:decoration-zinc-600 dark:text-zinc-100 dark:hover:decoration-zinc-500"
+            >
+              Manager control room
+            </Link>
+            <span className="text-zinc-500 dark:text-zinc-500">
+              {" "}
+              — phase, roster, active evaluator, prep progress, verdict
+            </span>
+          </li>
+          <li>
+            <span className="text-zinc-600 dark:text-zinc-400">
+              Manager (Burger preset):{" "}
+            </span>
+            <Link
+              href="/eval/honza-sroubek"
+              className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 dark:text-zinc-100"
+            >
+              /eval/honza-sroubek
+            </Link>
+          </li>
+          <li className="text-zinc-600 dark:text-zinc-400">
+            <span className="font-medium text-zinc-800 dark:text-zinc-200">
+              Team Burger — evaluators
+            </span>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-zinc-600 dark:text-zinc-400">
+              {BURGER_EVALUATOR_SLUGS.map((s) => (
+                <li key={s}>
+                  <Link
+                    href={`/eval/${s}`}
+                    className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 dark:text-zinc-100"
+                  >
+                    /eval/{s}
+                  </Link>
+                  <span className="text-zinc-500">
+                    {" "}
+                    —{" "}
+                    {
+                      BURGER_ROSTER.find((r) => r.slug === s)?.name
+                    }
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-zinc-500">
+              In the control room, click <strong>Seed “Burger” team</strong>{" "}
+              once so names and roles exist before people open their links.
+            </p>
+          </li>
+        </ul>
+        <p className="mt-6 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
+          Optional: set <code className="rounded bg-zinc-200/70 px-1 dark:bg-zinc-800">MANAGER_ACCESS_KEY</code>{" "}
+          in <code className="text-xs">.env.local</code> and open{" "}
+          <code className="text-xs">/room/driver?k=…</code> (server-side gate).
         </p>
       </main>
     </div>
