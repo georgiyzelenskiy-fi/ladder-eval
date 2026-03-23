@@ -1,0 +1,20 @@
+/* eslint-disable */
+/**
+ * Generated data model types.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
+import { AnyDataModel } from "convex/server";
+import type { GenericId } from "convex/values";
+
+export type TableNames = string;
+
+export type Doc = any;
+
+export type Id = GenericId;
+
+export type DataModel = AnyDataModel;

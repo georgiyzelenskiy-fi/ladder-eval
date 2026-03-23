@@ -1,0 +1,856 @@
+<!doctype html>
+
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DevSync | Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#22262b",
+              "on-secondary": "#002043",
+              "surface-container": "#161a1e",
+              "on-error": "#490006",
+              "tertiary-dim": "#ab8bf9",
+              "surface-container-low": "#101417",
+              "primary-fixed-dim": "#0099f0",
+              "primary-fixed": "#2aa7ff",
+              "on-secondary-container": "#f6f7ff",
+              "on-tertiary": "#3a1482",
+              "error-container": "#9f0519",
+              "tertiary-fixed": "#bca2ff",
+              "on-secondary-fixed-variant": "#005197",
+              "on-error-container": "#ffa8a3",
+              "inverse-surface": "#f8f9fe",
+              tertiary: "#bca2ff",
+              outline: "#737679",
+              error: "#ff716c",
+              "secondary-fixed": "#b9d3ff",
+              "primary-container": "#2aa7ff",
+              "on-surface": "#f8f9fe",
+              "on-tertiary-fixed-variant": "#43208b",
+              "on-primary-fixed": "#000000",
+              "tertiary-fixed-dim": "#b091ff",
+              "secondary-fixed-dim": "#a1c5ff",
+              "on-secondary-fixed": "#003466",
+              "surface-dim": "#0b0e11",
+              "surface-variant": "#22262b",
+              surface: "#0b0e11",
+              "on-primary-fixed-variant": "#002e4d",
+              "inverse-primary": "#00639e",
+              "error-dim": "#d7383b",
+              "on-surface-variant": "#a9abaf",
+              "on-tertiary-container": "#2e0075",
+              "inverse-on-surface": "#535559",
+              "on-primary-container": "#00253f",
+              "outline-variant": "#45484c",
+              "on-primary": "#003151",
+              background: "#0b0e11",
+              "surface-container-high": "#1c2024",
+              "primary-dim": "#15a4ff",
+              "surface-container-lowest": "#000000",
+              "on-background": "#f8f9fe",
+              secondary: "#599ffb",
+              "tertiary-container": "#b091ff",
+              "surface-bright": "#282d31",
+              "secondary-dim": "#599ffb",
+              "surface-tint": "#5eb4ff",
+              "on-tertiary-fixed": "#1e0053",
+              "secondary-container": "#005fb0",
+              primary: "#5eb4ff",
+            },
+            fontFamily: {
+              headline: ["Inter"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .custom-glass {
+        background: rgba(22, 26, 30, 0.8);
+        backdrop-filter: blur(12px);
+      }
+      .glow-primary {
+        box-shadow: 0 0 15px rgba(94, 180, 255, 0.3);
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0b0e11;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #45484c;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary"
+  >
+    <!-- Top Navigation Anchor -->
+    <header
+      class="bg-[#0B0E11] dark:bg-[#0B0E11] docked full-width top-0 z-50 font-['Inter'] tracking-tight antialiased"
+    >
+      <div
+        class="flex justify-between items-center w-full px-6 h-16 border-b border-white/5 bg-[#161B22]"
+      >
+        <div class="flex items-center gap-8">
+          <span
+            class="text-xl font-bold tracking-tighter text-[#F8F9FE] dark:text-[#F8F9FE]"
+            >DevSync</span
+          >
+          <nav class="hidden md:flex items-center space-x-6">
+            <a
+              class="text-blue-400 border-b-2 border-blue-500 pb-1 text-sm font-medium"
+              href="#"
+              >Dashboard</a
+            >
+            <a
+              class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
+              href="#"
+              >Metrics</a
+            >
+            <a
+              class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
+              href="#"
+              >Reviews</a
+            >
+            <a
+              class="text-slate-400 hover:text-slate-200 transition-colors text-sm font-medium"
+              href="#"
+              >Teams</a
+            >
+          </nav>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div
+            class="flex items-center bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/20"
+          >
+            <span
+              class="material-symbols-outlined text-sm text-on-surface-variant mr-2"
+              >search</span
+            >
+            <input
+              class="bg-transparent border-none text-xs focus:ring-0 text-on-surface w-32 lg:w-48"
+              placeholder="Search systems..."
+              type="text"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <span
+              class="material-symbols-outlined text-slate-400 hover:text-slate-200 cursor-pointer"
+              >notifications</span
+            >
+            <span
+              class="material-symbols-outlined text-slate-400 hover:text-slate-200 cursor-pointer"
+              >settings</span
+            >
+          </div>
+          <div
+            class="h-8 w-8 rounded-full overflow-hidden border border-primary/30"
+          >
+            <img
+              alt="User Profile Avatar"
+              class="w-full h-full object-cover"
+              data-alt="Professional male developer avatar in dark lighting"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdVrdhyaVRokA_jfXiXzkoZM5tFHdnOZi2JS-MO8SZMARONC-aisiChrZU2YBugH52FGyuZo3SbFvT9lIJ_kbf17fol6cJMzRsSIXa-JUKDn7uDaYNA4yMIqsmhP44CAeiO4KwkiLZeX64bWKzEqPS7hqlJVpEpM12V7IXjMH3LDmulceRXUj4SjdC6u4Tzxigok4iWGEIHEQHiEVdZ8uhc8cUZ-nDRISKcMQuGB3eW3IEV-wjesbP_mQc_Utcm-Uh7J5uCrO0Zdo"
+            />
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="flex min-h-screen pt-16">
+      <!-- Side Navigation Anchor -->
+      <aside
+        class="hidden md:flex flex-col h-[calc(100vh-64px)] w-64 fixed left-0 bg-[#0B0E11] dark:bg-[#0B0E11] border-r border-white/5 py-4 space-y-2"
+      >
+        <div class="px-6 py-4 mb-4">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 bg-primary/20 rounded-md flex items-center justify-center"
+            >
+              <span
+                class="material-symbols-outlined text-primary"
+                style="font-variation-settings: &quot;FILL&quot; 1"
+                >terminal</span
+              >
+            </div>
+            <div>
+              <div
+                class="text-blue-500 font-black text-sm tracking-tight leading-none"
+              >
+                Performance
+              </div>
+              <div
+                class="text-[10px] text-on-surface-variant font-medium mt-1 uppercase tracking-widest"
+              >
+                V2.4.0-Stable
+              </div>
+            </div>
+          </div>
+        </div>
+        <nav class="flex-1 px-4 space-y-1">
+          <a
+            class="flex items-center gap-3 px-4 py-2.5 bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 transition-transform"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-[20px]">analytics</span>
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Overview</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-[20px]">layers</span>
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Skill Matrix</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-[20px]"
+              >trending_up</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Performance Levels</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-[20px]">terminal</span>
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Git Analytics</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-[20px]">group</span>
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Peer Feedback</span
+            >
+          </a>
+        </nav>
+        <div class="px-6 py-4 border-t border-white/5">
+          <button
+            class="w-full bg-primary/10 border border-primary/20 text-primary py-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/20 transition-colors rounded"
+          >
+            Export Report
+          </button>
+          <div class="mt-6 space-y-4">
+            <a
+              class="flex items-center gap-3 text-slate-500 hover:text-slate-300 transition-colors"
+              href="#"
+            >
+              <span class="material-symbols-outlined text-sm">menu_book</span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest"
+                >Documentation</span
+              >
+            </a>
+            <a
+              class="flex items-center gap-3 text-slate-500 hover:text-slate-300 transition-colors"
+              href="#"
+            >
+              <span class="material-symbols-outlined text-sm"
+                >help_outline</span
+              >
+              <span class="text-[10px] font-semibold uppercase tracking-widest"
+                >Support</span
+              >
+            </a>
+          </div>
+        </div>
+      </aside>
+      <!-- Main Content Canvas -->
+      <main class="flex-1 md:ml-64 p-6 lg:p-10 bg-surface">
+        <!-- Header Section -->
+        <div
+          class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6"
+        >
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span
+                class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(94,180,255,0.8)]"
+              ></span>
+              <span
+                class="text-primary text-[10px] font-bold uppercase tracking-[0.2em]"
+                >Live Session</span
+              >
+            </div>
+            <h1
+              class="text-4xl font-extrabold tracking-tighter text-on-surface mb-2"
+            >
+              Preparation Phase
+            </h1>
+            <p class="text-on-surface-variant max-w-xl text-sm leading-relaxed">
+              System asynchronous evaluation window is open. Peer assessment
+              completion is required for the V2.4 cycle sync.
+            </p>
+          </div>
+          <!-- Team Readiness Widget -->
+          <div
+            class="bg-surface-container-high p-4 rounded-xl border border-outline-variant/10 custom-glass min-w-[240px]"
+          >
+            <div class="flex justify-between items-center mb-3">
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                >Team Readiness</span
+              >
+              <span class="text-primary font-bold text-xs">75%</span>
+            </div>
+            <div
+              class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden"
+            >
+              <div
+                class="h-full bg-gradient-to-r from-primary to-primary-container w-3/4 shadow-[0_0_10px_rgba(94,180,255,0.4)]"
+              ></div>
+            </div>
+            <div class="mt-3 flex -space-x-2">
+              <img
+                alt="Team Member"
+                class="w-6 h-6 rounded-full border border-surface"
+                data-alt="Male professional headshot"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ5YMKeZgvZhKMxEbAookgQJEVinMNiURfaYzSYUWZH5gsCiTGywoFJQMBKx83bWiR1WtKhuvRohoNf9DCRsXsJ5Jeq9a1RHTTZaizM1rD55HcuYfWasxeP-AuC9TGOrKZ9tTFdY8As16GnERoNpvQo9InfEqH8vRoy2KWtazYJ7Oba1mdHnv0xRrqB8lvrbKOr_RklCOKzoOTUQb3wtjBlBvceC7LEdLq1kiyfxl6OacFnDAh6EroShN8dGGN3hYrlX8J0mMz_8g"
+              />
+              <img
+                alt="Team Member"
+                class="w-6 h-6 rounded-full border border-surface"
+                data-alt="Female professional headshot"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF7a2fYs_pN8S9VqzX-Tjh1Pp_L1lU0462jFxaneKGLGSR31cs3K68OVDy7-0f5s8ZZWqPe81YNKwWrUloEyfauvYOTacwnp0n3v9b-5WXdsUBsUKE7Zcw-2A8Fu1uggTyk_7bJ44ws2Ow_bQucWWpJq2e_-f-79XwdFg4tAkiCIKfNO7w59HqBks7AI3gV1GafmrOmGynqNkzFQ_A5C5bOE2Bf99e2eSeyYGCjNoxpiYs0xMVE7NQjGCuvIqLJimfx7vwTvs1S8I"
+              />
+              <img
+                alt="Team Member"
+                class="w-6 h-6 rounded-full border border-surface"
+                data-alt="Male tech lead headshot"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBINjaDYuR-Mqo4CI1tH0tpeLFravQHYzJ0HKtwQ4u2IY_ZaVkhCjFu4dK1bLnLmeNFHs6wv_jkyjw5QMiDv-CEdr66IKCbgMO96XCO6iTZ85fWXzQ-wLRw5SKqPswhHux0L2b3XqI6-eQDAMLNK_wB72LRk5qQdFVzfKYuXhsy-cVYAD3rJLDroKSQN7hHvxC_Bu7wSxmW02sEdRiauHLoA4aEOoK_Nq7M0SYZrPRaG4oyz0GF12GgFqn9buWJs5KziwGNWQV2qEg"
+              />
+              <div
+                class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center text-[8px] font-bold border border-surface text-on-surface-variant"
+              >
+                +2
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Dashboard Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Main Evaluation Column -->
+          <div class="lg:col-span-8 space-y-6">
+            <div class="flex items-center justify-between">
+              <h2
+                class="text-sm font-bold uppercase tracking-widest text-on-surface-variant flex items-center gap-2"
+              >
+                <span class="material-symbols-outlined text-primary text-lg"
+                  >pending_actions</span
+                >
+                Pending Peer Evaluations (4)
+              </h2>
+            </div>
+            <!-- Peer Cards Bento Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Card 1 -->
+              <div
+                class="bg-surface-container-high p-5 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all group"
+              >
+                <div class="flex justify-between items-start mb-6">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img
+                        alt="Sarah Chen"
+                        class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all"
+                        data-alt="Asian female developer in professional setting"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6HHSCk-YM2MCXnYOqLikw1T7KsmXgDUhRN9YkKZ_yYsBSv-MzBEe-W7SY9fmb-Pw9w-2xcjcOJF3RCppQjuVAUfWJUMLDzzzxtZWuBKsV9-P4QcD95Q166pnTrimJbrhuzQE3GJepUSGZLLm_LgLN7f0s3rYDm1abUJuOlFjlp_qAva0fDkYRkvEZmFFAeLGyZ70CjFoZxWzI6efCPrkUGCFj1GPJU7Vab6FUDv5qgl_Sz_chTnLUr-aKkEe7_QzLnIOzagkxc-I"
+                      />
+                      <span
+                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-surface-container-high"
+                      ></span>
+                    </div>
+                    <div>
+                      <div
+                        class="text-on-surface font-bold text-sm tracking-tight"
+                      >
+                        Sarah Chen
+                      </div>
+                      <div
+                        class="text-[10px] text-on-surface-variant uppercase tracking-wider"
+                      >
+                        Senior Frontend Eng
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold text-primary px-2 py-0.5 bg-primary/10 rounded"
+                    >URGENT</span
+                  >
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <div
+                      class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-tighter"
+                    >
+                      <span class="text-on-surface-variant">Progress</span>
+                      <span class="text-on-surface">45%</span>
+                    </div>
+                    <div class="h-1 bg-surface-container-highest rounded-full">
+                      <div
+                        class="h-full bg-primary w-[45%] rounded-full shadow-[0_0_8px_rgba(94,180,255,0.4)]"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-2">
+                    <div class="flex gap-1">
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                    </div>
+                    <button
+                      class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary-fixed transition-colors"
+                    >
+                      Continue
+                      <span class="material-symbols-outlined text-sm"
+                        >arrow_forward</span
+                      >
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Card 2 -->
+              <div
+                class="bg-surface-container-high p-5 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all group"
+              >
+                <div class="flex justify-between items-start mb-6">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img
+                        alt="Marcus Wright"
+                        class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all"
+                        data-alt="Man in glasses working on laptop"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQ2UoU6E9Hex3D8Zxytb5GXdRhcmMMPDWYlvKMDI0LWvphZHehrdOpjzvmqsOnVvW_S-Mbv858bEY1SX-TIIKBId6fjHmCUuZgQU91Y9DPYAWjEKAmTPZygY5TCkMnNTyNArjGi58yVqOK4L7k0Fcj72TV8r9QUmM3ehcm40PXZ7cjMJ1DPYUGLrErbKBINjw_KeTrmz0VEOP1us4OVhMjG6GygbH8neVA1EJ_A3RMaLnVhT4bjmK-peDiHb9p-W82rH7OQSLcRaw"
+                      />
+                      <span
+                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-on-surface-variant rounded-full border-2 border-surface-container-high"
+                      ></span>
+                    </div>
+                    <div>
+                      <div
+                        class="text-on-surface font-bold text-sm tracking-tight"
+                      >
+                        Marcus Wright
+                      </div>
+                      <div
+                        class="text-[10px] text-on-surface-variant uppercase tracking-wider"
+                      >
+                        Backend Architect
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold text-on-surface-variant px-2 py-0.5 bg-white/5 rounded"
+                    >NEW</span
+                  >
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <div
+                      class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-tighter"
+                    >
+                      <span class="text-on-surface-variant">Progress</span>
+                      <span class="text-on-surface">12%</span>
+                    </div>
+                    <div class="h-1 bg-surface-container-highest rounded-full">
+                      <div class="h-full bg-primary w-[12%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-2">
+                    <div class="flex gap-1">
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                    </div>
+                    <button
+                      class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary-fixed transition-colors"
+                    >
+                      Continue
+                      <span class="material-symbols-outlined text-sm"
+                        >arrow_forward</span
+                      >
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Card 3 -->
+              <div
+                class="bg-surface-container-high p-5 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all group"
+              >
+                <div class="flex justify-between items-start mb-6">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img
+                        alt="Elena Rodriguez"
+                        class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all"
+                        data-alt="Female developer portrait with short hair"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO7pPId2seyS0sO7L_mSpSFDe_gziNJqxCHcEwsBnaTVZDp064lQZfMDC31G0pTvLim2bbSYxwoUAQ_ViEAwdK6Jzy3u2Lw-4QLRLCgKjXy2Q9jQ3RicWOfB61VN9ZbvML0fKoaPSAHjtvoXcDpYQE_f38r1KFEg-YmDcOeV8emCjJCgc_ni7LBUgNLz_JkB08k9zenca9SP9NsV2OQ6yZqcNUpIvJtRVhpy-6K5dpZ_FErx14FRQtNwDG2mUFhRvAkLkCsVTetQM"
+                      />
+                      <span
+                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-surface-container-high"
+                      ></span>
+                    </div>
+                    <div>
+                      <div
+                        class="text-on-surface font-bold text-sm tracking-tight"
+                      >
+                        Elena Rodriguez
+                      </div>
+                      <div
+                        class="text-[10px] text-on-surface-variant uppercase tracking-wider"
+                      >
+                        Product Designer
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold text-on-surface-variant px-2 py-0.5 bg-white/5 rounded"
+                    >7D LEFT</span
+                  >
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <div
+                      class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-tighter"
+                    >
+                      <span class="text-on-surface-variant">Progress</span>
+                      <span class="text-on-surface">88%</span>
+                    </div>
+                    <div class="h-1 bg-surface-container-highest rounded-full">
+                      <div
+                        class="h-full bg-primary w-[88%] rounded-full shadow-[0_0_8px_rgba(94,180,255,0.4)]"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-2">
+                    <div class="flex gap-1">
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                      <span class="w-1 h-3 bg-primary/20 rounded-full"></span>
+                    </div>
+                    <button
+                      class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary-fixed transition-colors"
+                    >
+                      Continue
+                      <span class="material-symbols-outlined text-sm"
+                        >arrow_forward</span
+                      >
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Card 4 -->
+              <div
+                class="bg-surface-container-high p-5 rounded-xl border border-outline-variant/10 hover:border-primary/30 transition-all group"
+              >
+                <div class="flex justify-between items-start mb-6">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img
+                        alt="David Kim"
+                        class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all"
+                        data-alt="Male professional headshot in glasses"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKlme1xPHE1tMg6srXknB190tZHnPT6k6NtfX2xGdmeDE0ekGQRXkMxaxV-X4JK5kdRj-rZjwSMN4_GLjzYGv7sJqLlvGYnAhdx67XQIgUsWsUUdP-YSESu0TN1ln57Mnx20BP3P7i7UIqJMIGGpy6xYJdN9Wska2ewFxtsW21rZNcklufd8SZoRrr3FYYgfyz-bxB5HXJpWT9o0TuFZWQttkbI6McoW9Ub-wAWMz01jplAfSZc5XP9l5otOJ0XVg5o4DZ5ktvosU"
+                      />
+                      <span
+                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-surface-container-high"
+                      ></span>
+                    </div>
+                    <div>
+                      <div
+                        class="text-on-surface font-bold text-sm tracking-tight"
+                      >
+                        David Kim
+                      </div>
+                      <div
+                        class="text-[10px] text-on-surface-variant uppercase tracking-wider"
+                      >
+                        Cloud Engineer
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    class="text-[10px] font-bold text-on-surface-variant px-2 py-0.5 bg-white/5 rounded"
+                    >PENDING</span
+                  >
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <div
+                      class="flex justify-between text-[10px] font-bold mb-1.5 uppercase tracking-tighter"
+                    >
+                      <span class="text-on-surface-variant">Progress</span>
+                      <span class="text-on-surface">0%</span>
+                    </div>
+                    <div class="h-1 bg-surface-container-highest rounded-full">
+                      <div class="h-full bg-primary w-[0%] rounded-full"></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-2">
+                    <div class="flex gap-1">
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                      <span
+                        class="w-1 h-3 bg-surface-container-highest rounded-full"
+                      ></span>
+                    </div>
+                    <button
+                      class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary-fixed transition-colors"
+                    >
+                      Start
+                      <span class="material-symbols-outlined text-sm"
+                        >play_arrow</span
+                      >
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Insights Sidebar Column -->
+          <div class="lg:col-span-4 space-y-6">
+            <!-- Self Assessment Card -->
+            <div
+              class="bg-surface-container-highest p-6 rounded-xl border border-primary/20 relative overflow-hidden group glow-primary"
+            >
+              <div
+                class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"
+              >
+                <span
+                  class="material-symbols-outlined text-6xl text-primary"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >assignment_ind</span
+                >
+              </div>
+              <h3
+                class="text-xs font-bold uppercase tracking-widest text-primary mb-4 flex items-center gap-2"
+              >
+                <span class="material-symbols-outlined text-sm"
+                  >account_circle</span
+                >
+                Self-Assessment Status
+              </h3>
+              <div class="mb-6">
+                <div
+                  class="text-3xl font-black text-on-surface tracking-tighter"
+                >
+                  COMPLETE
+                </div>
+                <div
+                  class="text-[10px] text-on-surface-variant font-medium mt-1 uppercase tracking-widest"
+                >
+                  Submitted Oct 24, 09:12 AM
+                </div>
+              </div>
+              <button
+                class="w-full py-2.5 bg-surface-container rounded font-bold text-[10px] uppercase tracking-widest border border-outline-variant/30 hover:border-primary/50 transition-colors text-on-surface"
+              >
+                View Submission
+              </button>
+            </div>
+            <!-- Evaluation Timeline / Activity -->
+            <div
+              class="bg-surface-container-high p-6 rounded-xl border border-outline-variant/10"
+            >
+              <h3
+                class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-6"
+              >
+                Recent Activity
+              </h3>
+              <div class="space-y-6">
+                <div class="flex gap-4 relative">
+                  <div
+                    class="absolute top-0 bottom-0 left-2 w-px bg-outline-variant/20 -mb-6"
+                  ></div>
+                  <div
+                    class="relative z-10 w-4 h-4 rounded-full bg-primary border-4 border-surface-container-high"
+                  ></div>
+                  <div>
+                    <div class="text-xs font-bold text-on-surface">
+                      Self-Assessment Finalized
+                    </div>
+                    <div class="text-[10px] text-on-surface-variant mt-1">
+                      2 hours ago
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-4 relative">
+                  <div
+                    class="absolute top-0 bottom-0 left-2 w-px bg-outline-variant/20 -mb-6"
+                  ></div>
+                  <div
+                    class="relative z-10 w-4 h-4 rounded-full bg-surface-container-highest border-4 border-surface-container-high"
+                  ></div>
+                  <div>
+                    <div class="text-xs font-bold text-on-surface">
+                      Review started: Elena Rodriguez
+                    </div>
+                    <div class="text-[10px] text-on-surface-variant mt-1">
+                      Yesterday
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="relative z-10 w-4 h-4 rounded-full bg-surface-container-highest border-4 border-surface-container-high"
+                  ></div>
+                  <div>
+                    <div class="text-xs font-bold text-on-surface">
+                      Evaluation Window Opened
+                    </div>
+                    <div class="text-[10px] text-on-surface-variant mt-1">
+                      3 days ago
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Metrics Visualization Hint -->
+            <div
+              class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex flex-col items-center text-center"
+            >
+              <div
+                class="w-full h-32 mb-4 bg-gradient-to-t from-primary/5 to-transparent rounded-lg flex items-end justify-between px-4 pb-2"
+              >
+                <div class="w-2 bg-primary/20 h-1/4 rounded-t"></div>
+                <div class="w-2 bg-primary/40 h-2/4 rounded-t"></div>
+                <div class="w-2 bg-primary/30 h-1/3 rounded-t"></div>
+                <div class="w-2 bg-primary/60 h-3/4 rounded-t"></div>
+                <div class="w-2 bg-primary/80 h-2/3 rounded-t"></div>
+                <div class="w-2 bg-primary h-full rounded-t"></div>
+              </div>
+              <h4
+                class="text-xs font-bold text-on-surface uppercase tracking-widest mb-2"
+              >
+                Cycle Velocity
+              </h4>
+              <p class="text-[10px] text-on-surface-variant">
+                Team sync rate is up 12% compared to last quarter's preparation
+                phase.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- Bottom Navigation Mobile -->
+    <nav
+      class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-high custom-glass border-t border-outline-variant/10 z-50 flex justify-around py-3 px-6"
+    >
+      <a class="flex flex-col items-center gap-1 text-primary" href="#">
+        <span
+          class="material-symbols-outlined"
+          style="font-variation-settings: &quot;FILL&quot; 1"
+          >analytics</span
+        >
+        <span class="text-[10px] font-bold uppercase tracking-tighter"
+          >Overview</span
+        >
+      </a>
+      <a
+        class="flex flex-col items-center gap-1 text-on-surface-variant"
+        href="#"
+      >
+        <span class="material-symbols-outlined">layers</span>
+        <span class="text-[10px] font-bold uppercase tracking-tighter"
+          >Skills</span
+        >
+      </a>
+      <a
+        class="flex flex-col items-center gap-1 text-on-surface-variant"
+        href="#"
+      >
+        <span class="material-symbols-outlined">group</span>
+        <span class="text-[10px] font-bold uppercase tracking-tighter"
+          >Peers</span
+        >
+      </a>
+      <a
+        class="flex flex-col items-center gap-1 text-on-surface-variant"
+        href="#"
+      >
+        <span class="material-symbols-outlined">settings</span>
+        <span class="text-[10px] font-bold uppercase tracking-tighter"
+          >Settings</span
+        >
+      </a>
+    </nav>
+    <!-- Contextual FAB -->
+    <button
+      class="fixed bottom-24 md:bottom-10 right-10 w-14 h-14 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center text-on-primary-fixed shadow-[0_0_20px_rgba(94,180,255,0.5)] active:scale-95 transition-all z-40 group"
+    >
+      <span
+        class="material-symbols-outlined"
+        style="font-variation-settings: &quot;FILL&quot; 1"
+        >edit_square</span
+      >
+      <span
+        class="absolute right-full mr-4 bg-surface-container px-3 py-1 rounded text-[10px] font-bold text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity border border-primary/20"
+        >Write Note</span
+      >
+    </button>
+  </body>
+</html>
