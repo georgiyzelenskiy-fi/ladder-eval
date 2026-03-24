@@ -10,13 +10,7 @@ export default async function LiveEvaluationPage({
   const sp = await searchParams;
   const key = typeof sp.k === "string" ? sp.k : undefined;
   const required = process.env.MANAGER_ACCESS_KEY;
-  if (required && key !== required) {
-    return (
-      <div className="flex min-h-full flex-1 items-center justify-center px-6 py-16">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Not found.</p>
-      </div>
-    );
-  }
+  const canManage = !required || key === required;
 
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
@@ -42,8 +36,6 @@ export default async function LiveEvaluationPage({
   }
 
   return (
-    <div className="min-h-full flex-1 bg-surface text-on-surface">
-      <LiveEvaluationClient />
-    </div>
+    <LiveEvaluationClient canManage={canManage} managerKey={key} />
   );
 }

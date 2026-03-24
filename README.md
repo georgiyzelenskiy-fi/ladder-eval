@@ -21,7 +21,7 @@ Structured **360° evaluation** for a small dev team: **prepare-then-reveal** (a
    ```
 
    - `NEXT_PUBLIC_CONVEX_URL` — required for live data and Convex hooks.
-   - `MANAGER_ACCESS_KEY` (optional) — if set, open the control room as `/room/driver?k=<value>` (server-side check only).
+   - `MANAGER_ACCESS_KEY` (optional) — if set, open manager UIs as `/room/driver?k=<value>` and `/room/live-evaluation?k=<value>` (Next.js gate; Convex live-eval mutations also check the key when set).
 
 2. **Terminal A — Convex**
 
@@ -53,7 +53,9 @@ Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Every
 
 **Burger preset** (names, emails for invites, URL slugs): [`lib/roster-presets/burger.ts`](lib/roster-presets/burger.ts). Evaluator slugs include `adrien-rouaix`, `daniil-belov`, `david-veltzer`, `georgiy-zelenskiy`, `julien-baron`; manager join link uses `honza-sroubek`.
 
-**Convex surface (high level):** `session.*` (session bootstrap, phase, active evaluator, verdict), `users.*` (roster, join, seed), `evaluations.*` (checkboxes, live aggregates). Schema: [`convex/schema.ts`](convex/schema.ts).
+**Convex surface (high level):** `session.*` (bootstrap, phase, active evaluator, live skill focus, live-eval wizard, verdict), `users.*` (roster, join, seed), `evaluations.*` (checkboxes, prep-safe list, live aggregates), `liveEvaluation.*` (manager bundle + calibration marks). Schema: [`convex/schema.ts`](convex/schema.ts).
+
+**Conceptual model:** Evaluators write **per–(subject × skill)** rows in `evaluations` (checkboxes, optional manual mark + rationale). During **preparation**, each client only loads **their own** evaluator rows (`listEvaluationsForEvaluator`). The manager uses **`/room/driver`** for session FSM + prep aggregates, **`/room/live-evaluation`** for peer-reveal queue + calibration marks, and optional **`MANAGER_ACCESS_KEY`** + `?k=` on those routes when set. Full product intent and checklist: [`docs/design-document.md`](docs/design-document.md).
 
 ---
 
@@ -62,8 +64,9 @@ Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Every
 | Path | Purpose |
 |------|---------|
 | `/` | Setup hints + deep links to control room and Burger eval URLs |
-| `/room/driver` | Manager control room (requires `NEXT_PUBLIC_CONVEX_URL`) |
-| `/eval/[slug]` | Evaluator join + (soon) matrix UI |
+| `/room/driver` | Manager control room (requires `NEXT_PUBLIC_CONVEX_URL`; optional `?k=` if `MANAGER_ACCESS_KEY` is set) |
+| `/room/live-evaluation` | Manager live calibration UI (same env + optional gate); HTML reference: [`docs/live-group-evaluation.html`](docs/live-group-evaluation.html) |
+| `/eval/[slug]` | Evaluator join + full skill matrix (`EvaluatorMatrix` → `evaluations.updateCheckboxes`) |
 
 ---
 
@@ -73,12 +76,12 @@ Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Every
 |------|----------|--------|
 | Rubrics | `lib/hard-skills-rubric.ts`, `lib/soft-skills-rubric.ts`, `lib/skill-rubric-common.ts` | Level 1–5 criteria trees |
 | Checkpoints & scoring | `lib/skill-checkpoints.ts`, `lib/scoring.ts`, `lib/scoring.test.ts` | Stable IDs + foundation-first UI estimate |
-| Convex API | `convex/` | Schema + session / users / evaluations modules |
-| Manager UI | `app/room/driver/` | FSM + seed + roster + aggregates |
-| Evaluator join | `app/eval/[slug]/` | Join + pre-filled names when roster is seeded |
-| UI prototypes | `docs/skill-evaluation.html`, `docs/developer-dashboard.html` | Reference for upcoming App Router port |
+| Convex API | `convex/` | Schema + session / users / evaluations / liveEvaluation |
+| Manager UI | `app/room/driver/`, `app/room/live-evaluation/` | FSM + seed + aggregates; live peer queue + calibration |
+| Evaluator join | `app/eval/[slug]/` | Join + matrix; prep privacy via Convex query filter |
+| UI prototypes | `docs/skill-evaluation.html`, `docs/developer-dashboard.html`, `docs/live-group-evaluation.html` | HTML reference; App Router ports for matrix + live eval |
 
-**Next up (see design checklist §8):** evaluator matrix wired to `evaluations.updateCheckboxes` + scoring; prep vs live visibility; radar / heatmap; bias guards.
+**Next up (see design checklist §8):** radar / heatmap; bias guards (discrepancy highlight, 50% interaction before manual mark); optional Convex hardening beyond MVP trust model — snapshot: [`docs/temp/2026-03-24T092200Z-audit.md`](docs/temp/2026-03-24T092200Z-audit.md).
 
 ---
 

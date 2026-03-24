@@ -17,30 +17,85 @@ type NavItem = {
   label: string;
   icon: string;
   disabled?: boolean;
+  disabledTitle?: string;
 };
 
-export function EvalWorkspaceShell({
-  slug,
-  children,
-}: {
+const LIVE_CAL_PATH = "/room/live-evaluation";
+const DRIVER_PATH = "/room/driver";
+
+type EvalVariantProps = {
+  variant?: "eval";
   slug: string;
   children: ReactNode;
-}) {
+  contentWrapperClassName?: string;
+};
+
+type RoomVariantProps = {
+  variant: "room";
+  headerTitle: string;
+  children: ReactNode;
+  contentWrapperClassName?: string;
+  /** If set, Skill matrix links to this evaluator slug. */
+  skillMatrixSlug?: string;
+};
+
+export type EvalWorkspaceShellProps = EvalVariantProps | RoomVariantProps;
+
+export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const pathname = usePathname();
-  const evalPath = `/eval/${slug}`;
-  const onEval = pathname === evalPath;
+  const isRoom = props.variant === "room";
+  const evalSlug = props.variant === "room" ? null : props.slug;
+  const roomHeaderTitle = props.variant === "room" ? props.headerTitle : null;
+  const roomSkillMatrixSlug =
+    props.variant === "room" ? props.skillMatrixSlug : undefined;
+
+  const evalPath = evalSlug != null ? `/eval/${evalSlug}` : null;
+  const onEval = evalPath != null && pathname === evalPath;
+
+  const skillMatrixItem: NavItem =
+    evalSlug != null
+      ? { href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }
+      : roomSkillMatrixSlug
+        ? {
+            href: `/eval/${roomSkillMatrixSlug}`,
+            label: "Skill matrix",
+            icon: "hub",
+          }
+        : {
+            href: "#",
+            label: "Skill matrix",
+            icon: "hub",
+            disabled: true,
+            disabledTitle: "Open your personal matrix link from the home page",
+          };
 
   const mainNav: NavItem[] = [
     { href: "/", label: "Dashboard", icon: "dashboard" },
-    { href: evalPath, label: "Skill Matrix", icon: "hub" },
-    { href: "/room/driver", label: "Control room", icon: "analytics" },
-    { href: "#", label: "Team Insights", icon: "group", disabled: true },
+    skillMatrixItem,
+    { href: DRIVER_PATH, label: "Control room", icon: "analytics" },
+    { href: LIVE_CAL_PATH, label: "Live calibration", icon: "groups" },
+    { href: "#", label: "Team insights", icon: "group", disabled: true },
     { href: "#", label: "Repository", icon: "terminal", disabled: true },
   ];
 
+  const headerAccent =
+    evalSlug != null ? (
+      <span className="text-primary">{humanizeSlug(evalSlug)}</span>
+    ) : (
+      <span className="text-on-surface">{roomHeaderTitle ?? ""}</span>
+    );
+
+  const avatarLetter =
+    evalSlug != null
+      ? humanizeSlug(evalSlug).charAt(0) || "?"
+      : (roomHeaderTitle?.charAt(0) ?? "?");
+
+  const contentClass =
+    props.contentWrapperClassName ?? "space-y-8 p-8";
+
   return (
     <div className="eval-workspace min-h-screen bg-surface text-on-surface antialiased">
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col gap-2 bg-surface-container-low py-6 eval-workspace-scroll overflow-y-auto">
+      <aside className="eval-workspace-scroll fixed left-0 top-0 z-40 flex h-screen w-64 flex-col gap-2 overflow-y-auto bg-surface-container-low py-6">
         <div className="mb-8 px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-primary-container">
@@ -61,19 +116,40 @@ export function EvalWorkspaceShell({
 
         <nav className="flex flex-1 flex-col space-y-1">
           {mainNav.map((item) => {
-            const active = !item.disabled && item.href === evalPath && onEval;
-            const isDashboard = !item.disabled && item.href === "/" && pathname === "/";
-            const isDriver =
+            const isDashboard =
+              !item.disabled && item.href === "/" && pathname === "/";
+            const isSkillMatrix =
               !item.disabled &&
-              item.href === "/room/driver" &&
-              (pathname.startsWith("/room/driver") ||
-                pathname.startsWith("/room/live-evaluation"));
-            const highlighted = active || isDashboard || isDriver;
+              evalPath != null &&
+              item.href === evalPath &&
+              onEval;
+            const isSkillMatrixRoom =
+              !item.disabled &&
+              isRoom &&
+              roomSkillMatrixSlug != null &&
+              item.href === `/eval/${roomSkillMatrixSlug}` &&
+              pathname === item.href;
+            const isControlRoom =
+              !item.disabled &&
+              item.href === DRIVER_PATH &&
+              pathname.startsWith(DRIVER_PATH);
+            const isLiveCal =
+              !item.disabled &&
+              item.href === LIVE_CAL_PATH &&
+              pathname.startsWith(LIVE_CAL_PATH);
+
+            const highlighted =
+              isDashboard ||
+              isSkillMatrix ||
+              isSkillMatrixRoom ||
+              isControlRoom ||
+              isLiveCal;
 
             if (item.disabled) {
               return (
                 <span
                   key={item.label}
+                  title={item.disabledTitle}
                   className="flex cursor-not-allowed items-center gap-4 px-6 py-3 text-on-surface-variant/50"
                 >
                   <span className="material-symbols-outlined text-xl">
@@ -88,7 +164,7 @@ export function EvalWorkspaceShell({
 
             return (
               <Link
-                key={item.href}
+                key={item.href + item.label}
                 href={item.href}
                 className={`flex items-center gap-4 px-6 py-3 transition-all duration-200 ease-in-out ${
                   highlighted
@@ -136,13 +212,18 @@ export function EvalWorkspaceShell({
         </div>
       </aside>
 
-      <main className="min-h-screen ml-64">
-        <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant/15 bg-surface/80 px-8 backdrop-blur-xl">
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-0.5 bg-primary" aria-hidden />
+      <main className="ml-64 flex min-h-screen flex-col">
+        <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b border-outline-variant/15 bg-surface/80 px-8 backdrop-blur-xl">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="h-8 w-0.5 shrink-0 bg-primary" aria-hidden />
             <h1 className="font-sans text-xs font-bold uppercase tracking-widest text-on-surface">
-              Evaluation workspace:{" "}
-              <span className="text-primary">{humanizeSlug(slug)}</span>
+              {evalSlug != null ? (
+                <>
+                  Evaluation workspace: {headerAccent}
+                </>
+              ) : (
+                <>{headerAccent}</>
+              )}
             </h1>
           </div>
           <div className="flex items-center gap-6">
@@ -172,12 +253,12 @@ export function EvalWorkspaceShell({
                 className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant"
                 aria-hidden
               >
-                {humanizeSlug(slug).charAt(0) || "?"}
+                {avatarLetter}
               </div>
             </div>
           </div>
         </header>
-        <div className="space-y-8 p-8">{children}</div>
+        <div className={`min-h-0 flex-1 ${contentClass}`}>{props.children}</div>
       </main>
     </div>
   );

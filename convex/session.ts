@@ -1,6 +1,13 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+function assertManagerKey(provided: string | undefined): void {
+  const required = process.env.MANAGER_ACCESS_KEY;
+  if (required == null || required === "") return;
+  if (provided !== required) {
+    throw new Error("Manager access required");
+  }
+}
 
 function shuffleIds(ids: Id<"users">[]): Id<"users">[] {
   const copy = [...ids];
@@ -112,8 +119,10 @@ export const setLiveEvalSkill = mutation({
   args: {
     sessionId: v.id("sessions"),
     skillId: v.string(),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, skillId }) => {
+  handler: async (ctx, { sessionId, skillId, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, {
       liveEvalSkillId: skillId,
       liveEvalRevealCursor: 0,
@@ -125,8 +134,10 @@ export const setLiveEvalSubject = mutation({
   args: {
     sessionId: v.id("sessions"),
     subjectId: v.id("users"),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, subjectId }) => {
+  handler: async (ctx, { sessionId, subjectId, managerKey }) => {
+    assertManagerKey(managerKey);
     const order = await defaultPeerRevealOrder(ctx, sessionId, subjectId);
     await ctx.db.patch(sessionId, {
       liveEvalSubjectId: subjectId,
@@ -137,8 +148,12 @@ export const setLiveEvalSubject = mutation({
 });
 
 export const shuffleLiveEvalOrder = mutation({
-  args: { sessionId: v.id("sessions") },
-  handler: async (ctx, { sessionId }) => {
+  args: {
+    sessionId: v.id("sessions"),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, managerKey }) => {
+    assertManagerKey(managerKey);
     const session = await ctx.db.get(sessionId);
     if (!session?.liveEvalRevealOrder?.length) return;
     await ctx.db.patch(sessionId, {
@@ -149,14 +164,38 @@ export const shuffleLiveEvalOrder = mutation({
 });
 
 export const randomizeLiveEvalSubject = mutation({
-  args: { sessionId: v.id("sessions") },
-  handler: async (ctx, { sessionId }) => {
+  args: {
+    sessionId: v.id("sessions"),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, managerKey }) => {
+    assertManagerKey(managerKey);
+    const session = await ctx.db.get(sessionId);
+    const skillId = session?.liveEvalSkillId;
+    if (!skillId) return;
+
     const roster = await ctx.db
       .query("users")
       .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
       .collect();
-    const candidates = roster.filter((u) => u.role === "evaluator");
+    const evaluators = roster.filter((u) => u.role === "evaluator");
+    if (evaluators.length === 0) return;
+
+    const marks = await ctx.db
+      .query("calibrationMarks")
+      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+      .collect();
+    const calibratedSubjectIds = new Set(
+      marks.filter((m) => m.skillId === skillId).map((m) => m.subjectId),
+    );
+    const currentSubjectId = session.liveEvalSubjectId;
+    const candidates = evaluators.filter(
+      (u) =>
+        !calibratedSubjectIds.has(u._id) &&
+        (currentSubjectId === undefined || u._id !== currentSubjectId),
+    );
     if (candidates.length === 0) return;
+
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
     const order = await defaultPeerRevealOrder(ctx, sessionId, pick._id);
     await ctx.db.patch(sessionId, {
@@ -168,8 +207,12 @@ export const randomizeLiveEvalSubject = mutation({
 });
 
 export const liveEvalRevealNext = mutation({
-  args: { sessionId: v.id("sessions") },
-  handler: async (ctx, { sessionId }) => {
+  args: {
+    sessionId: v.id("sessions"),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, managerKey }) => {
+    assertManagerKey(managerKey);
     const session = await ctx.db.get(sessionId);
     if (!session?.liveEvalRevealOrder?.length) return;
     const cur = session.liveEvalRevealCursor ?? 0;
@@ -182,8 +225,12 @@ export const liveEvalRevealNext = mutation({
 });
 
 export const resetLiveEvalReveal = mutation({
-  args: { sessionId: v.id("sessions") },
-  handler: async (ctx, { sessionId }) => {
+  args: {
+    sessionId: v.id("sessions"),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, {
       liveEvalRevealCursor: 0,
     });

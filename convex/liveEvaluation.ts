@@ -1,5 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+function assertManagerKey(provided: string | undefined): void {
+  const required = process.env.MANAGER_ACCESS_KEY;
+  if (required == null || required === "") return;
+  if (provided !== required) {
+    throw new Error("Manager access required");
+  }
+}
 
 /** Manager live-eval UI: roster, all evaluations, calibration marks, session wizard fields. */
 export const getLiveEvalBundle = query({
@@ -45,8 +52,10 @@ export const upsertCalibrationMark = mutation({
     subjectId: v.id("users"),
     skillId: v.string(),
     mark: v.number(),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, subjectId, skillId, mark }) => {
+  handler: async (ctx, { sessionId, subjectId, skillId, mark, managerKey }) => {
+    assertManagerKey(managerKey);
     const now = Date.now();
     const existing = await ctx.db
       .query("calibrationMarks")

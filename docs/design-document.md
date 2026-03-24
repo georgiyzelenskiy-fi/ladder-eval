@@ -42,13 +42,20 @@ The application is a **finite state machine** driven by the Manager (Driver).
 
 ### 3.2 Phase 2 — Live evaluation (synchronous, e.g. Zoom)
 
-- Manager drives the UI.
-- **Sequential reveal:** Manager selects the next unit to reveal (skill / criterion / step as specified in UI).
-- **Simultaneous reveal:** For the selected item, **all** peer ratings and rationales appear at once (Planning Poker–style) to reduce anchoring bias.
-- **Discussion:** Group calibrates discrepancy among:
-  - **UI estimate** (computed from checkboxes),
-  - **Evaluator marks** (manual 1–5),
-  - **Manager final mark** (authoritative after calibration).
+Manager drives the UI. The MVP uses **two complementary manager surfaces** under the same session FSM (`preparation` → `live` → `finished`):
+
+**A — Control room (`/room/driver`)**  
+- **Sequential competency focus:** The manager sets which competency is “in focus” (prev/next/jump/clear). The team walks the matrix **one skill at a time**.  
+- Evaluators use **`/eval/[slug]`**; each still sees only **their own** evaluation rows during prep and live. The focused competency is **highlighted**; others are de-emphasized until the manager moves focus.  
+- **Active evaluator** (optional) signals whose matrix is “hot” for discussion; it does not change role-based prep secrecy.
+
+**B — Live evaluation (`/room/live-evaluation`)**  
+- For a chosen **skill** and **subject**, the manager runs a **peer reveal queue**: reveal order + cursor advance **one evaluator at a time** (Convex: `liveEvalRevealOrder`, `liveEvalRevealCursor`, `session.liveEvalRevealNext`). UI reference: `docs/live-group-evaluation.html`.  
+- Peers not yet reached may appear **locked** until the cursor advances; the manager commits **calibration marks** per `(subject, skill)` after discussion (`calibrationMarks`).
+
+**Discussion (both surfaces):** The group calibrates using **UI estimate** (from checkboxes), **evaluator marks** (manual 1–5), and **manager calibration / final mark** as recorded in the app.
+
+**Simultaneous vs sequential peers:** An earlier product sketch described showing **all** peer ratings for the selected cell at once (Planning Poker–style). The implemented **live evaluation** flow is **sequential peer reveal** instead, for structured turn-taking on the call. A later iteration could add an optional **simultaneous** mode for the same `(subject, skill)` if the team wants that anchoring-mitigation variant.
 
 ---
 
