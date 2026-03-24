@@ -42,6 +42,9 @@ function useStoredConvexUserId(slug: string): Id<"users"> | null {
   );
 }
 
+const terminalInputClass =
+  "mt-1 w-full border-0 border-b border-outline-variant bg-surface-container-low px-0 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-0 rounded-sm";
+
 export function EvalJoinClient({ slug }: Props) {
   const ensureSession = useMutation(api.session.ensureSession);
   const joinSession = useMutation(api.users.joinSession);
@@ -106,7 +109,7 @@ export function EvalJoinClient({ slug }: Props) {
 
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-on-surface-variant">
         Set NEXT_PUBLIC_CONVEX_URL in .env.local and run convex dev.
       </p>
     );
@@ -114,48 +117,48 @@ export function EvalJoinClient({ slug }: Props) {
 
   if (session === undefined) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading…</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+        Loading…
+      </p>
     );
   }
 
   if (session === null) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-on-surface-variant">
         Connecting to session…
       </p>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+    <div className="flex w-full max-w-6xl flex-col gap-8">
       <header>
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">
           Evaluator
         </p>
-        <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+        <h2 className="mt-1 text-2xl font-bold tracking-tight text-on-surface">
           Join as{" "}
-          <code className="rounded bg-zinc-200/80 px-1.5 py-0.5 text-lg dark:bg-zinc-800">
+          <code className="rounded-sm bg-surface-container-high px-2 py-0.5 font-mono text-lg text-primary">
             {slug}
           </code>
-        </h1>
+        </h2>
       </header>
 
       {me ? (
         <>
-          <div className="max-w-md rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Signed in as
-            </p>
-            <p className="mt-1 text-lg font-medium text-zinc-900 dark:text-zinc-50">
+          <div className="max-w-md rounded-xl border border-outline-variant/15 bg-surface-container px-4 py-4 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.35)]">
+            <p className="text-sm text-on-surface-variant">Signed in as</p>
+            <p className="mt-1 text-lg font-semibold text-on-surface">
               {me.name}
             </p>
-            <p className="mt-3 text-xs text-zinc-500">
+            <p className="mt-3 text-xs text-on-surface-variant">
               Your evaluator id is stored in this browser (localStorage).
             </p>
           </div>
           {sessionId ? (
             roster === undefined ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-on-surface-variant">
                 Loading roster…
               </p>
             ) : (
@@ -171,12 +174,12 @@ export function EvalJoinClient({ slug }: Props) {
       ) : (
         <form
           onSubmit={onJoin}
-          className="mx-auto flex max-w-md flex-col gap-3"
+          className="flex max-w-md flex-col gap-4"
         >
-          <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
             Display name
             {existingProfile?.name ? (
-              <span className="ml-2 text-xs font-normal text-zinc-500">
+              <span className="ml-2 font-normal normal-case tracking-normal text-on-surface-variant/80">
                 (pre-filled from roster)
               </span>
             ) : null}
@@ -189,16 +192,16 @@ export function EvalJoinClient({ slug }: Props) {
                 setName(e.target.value);
               }}
               autoComplete="name"
-              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+              className={terminalInputClass}
               placeholder="Your name"
             />
           </label>
           {error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-error">{error}</p>
           ) : null}
           <button
             type="submit"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+            className="rounded-md bg-gradient-to-br from-primary to-primary-container px-4 py-2.5 text-sm font-bold text-on-primary shadow-[0_8px_24px_-4px_rgba(94,180,255,0.35)] transition-transform active:scale-[0.98]"
           >
             Continue
           </button>

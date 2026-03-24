@@ -21,6 +21,23 @@ type Props = {
   roster: Doc<"users">[];
 };
 
+const COMPETENCY_ICONS: Record<string, string> = {
+  "code-reviews": "rate_review",
+  "emplifi-domain-knowledge": "corporate_fare",
+  "technology-knowledge": "memory",
+  "problem-solving": "lightbulb",
+  "learning-concepts": "school",
+  mentoring: "groups",
+  "organizational-skills": "assignment",
+  "collaboration-cooperation": "handshake",
+  accountability: "verified_user",
+  "conflict-resolution": "gavel",
+};
+
+function competencyIcon(id: string) {
+  return COMPETENCY_ICONS[id] ?? "widgets";
+}
+
 function evaluationFor(
   rows: Doc<"evaluations">[] | undefined,
   subjectId: Id<"users">,
@@ -46,7 +63,11 @@ function SkillBlock({
     checkpointId: string,
     next: boolean,
   ) => void;
-  onSaveMeta: (skillId: string, manualMark: number | undefined, rationale: string | undefined) => void;
+  onSaveMeta: (
+    skillId: string,
+    manualMark: number | undefined,
+    rationale: string | undefined,
+  ) => void;
 }) {
   const checkpoints = useMemo(
     () => competencyToCheckpoints(competency),
@@ -88,27 +109,71 @@ function SkillBlock({
     () => row?.rationale ?? "",
   );
 
+  const icon = competencyIcon(competency.id);
+
   return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex flex-col gap-3 border-b border-zinc-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            {competency.name}
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {competency.dimensions.slice(0, 3).join(" · ")}
-            {competency.dimensions.length > 3 ? "…" : ""}
-          </p>
+    <section className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low shadow-[0_16px_40px_-16px_rgba(0,0,0,0.45)]">
+      <div className="flex flex-col gap-4 border-b border-outline-variant/20 bg-surface-container-high px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-primary/20 bg-surface-container">
+            <span className="material-symbols-outlined text-2xl text-primary">
+              {icon}
+            </span>
+          </div>
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-on-surface">
+              {competency.name}
+            </h2>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              Dimension focus:{" "}
+              {competency.dimensions.slice(0, 3).join(", ")}
+              {competency.dimensions.length > 3 ? "…" : ""}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-wrap items-end gap-6">
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[9px] font-bold uppercase tracking-tighter text-on-surface-variant">
+              Evaluator mark (1–5)
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              step={1}
+              disabled={readOnly}
+              className="h-10 w-16 rounded border border-primary/30 bg-surface-container text-center text-lg font-black text-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+              value={manualDraft}
+              onChange={(e) => setManualDraft(e.target.value)}
+              onBlur={() => {
+                const t = manualDraft.trim();
+                if (t === "") {
+                  setManualDraft(row?.manualMark?.toString() ?? "");
+                  return;
+                }
+                const n = Number(t);
+                if (!Number.isInteger(n) || n < 1 || n > 5) {
+                  setManualDraft(row?.manualMark?.toString() ?? "");
+                  return;
+                }
+                if (n !== row?.manualMark) {
+                  onSaveMeta(competency.id, n, undefined);
+                }
+              }}
+            />
+          </div>
+          <div
+            className="hidden h-10 w-px bg-outline-variant/30 sm:block"
+            aria-hidden
+          />
           <div className="text-right">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-              UI estimate
+            <span className="text-[9px] font-bold uppercase tracking-tighter text-on-surface-variant">
+              UI-calculated level
+            </span>
+            <p className="text-3xl font-black tabular-nums text-on-surface/80">
+              L{score.uiEstimate.toFixed(1)}
             </p>
-            <p className="text-2xl font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
-              {score.uiEstimate.toFixed(1)}
-            </p>
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[10px] text-on-surface-variant">
               Base L{score.baseLevel}
               {score.spikeCount > 0
                 ? ` · +${score.spikeCount} spike${score.spikeCount === 1 ? "" : "s"}`
@@ -119,25 +184,34 @@ function SkillBlock({
       </div>
 
       {score.prematurePeakLevels.length > 0 ? (
-        <div className="border-b border-amber-200/80 bg-amber-50 px-4 py-2 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
-          <span className="font-medium">Premature peaks: </span>
+        <div className="border-b border-warning-muted bg-warning/10 px-4 py-2.5 text-xs text-on-surface">
+          <span className="font-semibold text-warning">Premature peaks: </span>
           Criteria above your foundation rung are checked (levels{" "}
           {score.prematurePeakLevels.join(", ")}). Calibration may be needed at
           reveal.
         </div>
       ) : null}
 
-      <div className="grid gap-px bg-zinc-200 p-px dark:bg-zinc-800 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-1 bg-surface-container-lowest p-1 sm:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4, 5].map((level) => {
           const rowsAt = byLevel.get(level) ?? [];
           const rub = competency.levels.find((l) => l.number === level);
+          const emphasize = score.baseLevel === level;
           return (
             <div
               key={level}
-              className="space-y-2 bg-zinc-50 p-3 dark:bg-zinc-900/80"
+              className={`space-y-3 p-4 ${
+                emphasize
+                  ? "bg-surface-container-high"
+                  : "bg-surface-container/50"
+              }`}
             >
-              <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                {rub ? `${rub.label}` : `L${level}`}
+              <p
+                className={`mb-2 block text-center text-[9px] font-black uppercase tracking-[0.2em] ${
+                  emphasize ? "text-primary" : "text-on-surface-variant"
+                }`}
+              >
+                {rub ? rub.label : `L${level}`}
               </p>
               <div className="space-y-2">
                 {rowsAt.map((dr) => {
@@ -145,35 +219,48 @@ function SkillBlock({
                   return (
                     <label
                       key={dr.id}
-                      className={`flex cursor-pointer gap-2 rounded-lg border p-2 text-left text-xs transition-colors select-none ${
+                      className={`flex cursor-pointer select-none flex-col gap-1 rounded border p-3 text-left text-[11px] transition-all ${
                         isOn
-                          ? "border-blue-400/50 bg-blue-50/80 dark:border-blue-500/40 dark:bg-blue-950/30"
-                          : "border-zinc-200 hover:bg-zinc-100/80 dark:border-zinc-700 dark:hover:bg-zinc-800/80"
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-outline-variant/10 hover:bg-surface-variant"
                       } ${readOnly ? "pointer-events-none opacity-60" : ""}`}
                     >
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 shrink-0"
-                        checked={isOn}
-                        disabled={readOnly}
-                        onChange={() =>
-                          onToggleCheckpoint(competency.id, dr.id, !isOn)
-                        }
-                      />
-                      <span
-                        className={
-                          dr.nested
-                            ? "pl-2 text-zinc-600 dark:text-zinc-400"
-                            : "font-medium text-zinc-800 dark:text-zinc-200"
-                        }
-                      >
-                        {dr.text}
-                      </span>
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={isOn}
+                          disabled={readOnly}
+                          onChange={() =>
+                            onToggleCheckpoint(competency.id, dr.id, !isOn)
+                          }
+                        />
+                        <span
+                          className={`material-symbols-outlined shrink-0 text-[16px] ${
+                            isOn
+                              ? "fill-on text-primary"
+                              : "text-on-surface-variant"
+                          }`}
+                        >
+                          {isOn ? "check_circle" : "circle"}
+                        </span>
+                        <span
+                          className={
+                            dr.nested
+                              ? "leading-tight text-on-surface-variant"
+                              : "font-bold leading-tight text-on-surface"
+                          }
+                        >
+                          {dr.text}
+                        </span>
+                      </div>
                     </label>
                   );
                 })}
                 {rowsAt.length === 0 ? (
-                  <p className="text-center text-[10px] text-zinc-400">—</p>
+                  <p className="text-center text-[10px] text-on-surface-variant/60">
+                    —
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -181,45 +268,16 @@ function SkillBlock({
         })}
       </div>
 
-      <div className="grid gap-4 border-t border-zinc-200 p-4 sm:grid-cols-2 dark:border-zinc-800">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-            Manual mark (1–5, optional)
-          </span>
-          <input
-            type="number"
-            min={1}
-            max={5}
-            step={1}
-            disabled={readOnly}
-            className="w-24 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
-            value={manualDraft}
-            onChange={(e) => setManualDraft(e.target.value)}
-            onBlur={() => {
-              const t = manualDraft.trim();
-              if (t === "") {
-                setManualDraft(row?.manualMark?.toString() ?? "");
-                return;
-              }
-              const n = Number(t);
-              if (!Number.isInteger(n) || n < 1 || n > 5) {
-                setManualDraft(row?.manualMark?.toString() ?? "");
-                return;
-              }
-              if (n !== row?.manualMark) {
-                onSaveMeta(competency.id, n, undefined);
-              }
-            }}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs sm:col-span-2">
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+      <div className="grid gap-6 border-t border-outline-variant/10 bg-surface-container-low p-6">
+        <label className="flex flex-col gap-2">
+          <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+            <span className="material-symbols-outlined text-sm">edit_note</span>
             Rationale / notes
           </span>
           <textarea
-            rows={3}
+            rows={4}
             disabled={readOnly}
-            className="resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+            className="resize-none rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             value={rationaleDraft}
             onChange={(e) => setRationaleDraft(e.target.value)}
             onBlur={() => {
@@ -232,6 +290,81 @@ function SkillBlock({
             placeholder="Optional context for this competency…"
           />
         </label>
+      </div>
+    </section>
+  );
+}
+
+function MatrixWorkspaceHero() {
+  return (
+    <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="relative overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 lg:col-span-4">
+        <div className="mb-4 flex justify-between items-start">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">
+            Skill geometry
+          </h3>
+        </div>
+        <div className="relative flex h-32 items-center justify-center rounded-lg bg-surface-container/40">
+          <div
+            className="absolute inset-2 rounded-md opacity-30"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(94,180,255,0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(94,180,255,0.12) 1px, transparent 1px)
+              `,
+              backgroundSize: "12px 12px",
+            }}
+            aria-hidden
+          />
+          <p className="relative z-[1] max-w-[12rem] text-center text-[10px] uppercase tracking-widest text-on-surface-variant">
+            Radar chart placeholder — library TBD
+          </p>
+        </div>
+        <p className="mt-4 text-[10px] font-bold uppercase text-on-surface-variant">
+          Aggregated view will appear here after integration.
+        </p>
+      </div>
+
+      <div className="flex flex-col justify-center rounded-xl border border-primary/20 bg-surface-container p-6 lg:col-span-8">
+        <div className="mb-4 flex items-center gap-4">
+          <span className="material-symbols-outlined text-3xl text-primary">
+            edit_note
+          </span>
+          <div>
+            <h3 className="text-lg font-black tracking-tight text-on-surface">
+              Evaluator workspace
+            </h3>
+            <p className="text-xs text-on-surface-variant">
+              Review the criteria below. Toggle items to record fulfillment.
+              Assign optional manual marks and add qualitative notes per
+              competency.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 border-t border-outline-variant/20 pt-4 sm:grid-cols-3">
+          <div className="text-center sm:border-r sm:border-outline-variant/20 sm:pr-4">
+            <div className="mb-1 text-[10px] font-bold uppercase text-on-surface-variant">
+              Status
+            </div>
+            <div className="text-sm font-bold uppercase text-success">
+              In progress
+            </div>
+          </div>
+          <div className="text-center sm:border-r sm:border-outline-variant/20 sm:px-4">
+            <div className="mb-1 text-[10px] font-bold uppercase text-on-surface-variant">
+              Manual marks
+            </div>
+            <div className="text-sm font-bold text-on-surface">—</div>
+          </div>
+          <div className="text-center sm:pl-4">
+            <div className="mb-1 text-[10px] font-bold uppercase text-on-surface-variant">
+              Peer visibility
+            </div>
+            <div className="text-sm font-bold uppercase text-primary">
+              Private draft
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -314,24 +447,24 @@ export function EvaluatorMatrix({
     phase === "preparation"
       ? {
           className:
-            "border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200",
+            "border-outline-variant/15 bg-surface-container-high text-on-surface",
           text: "Preparation — only your drafts load here. Peer checkbox data stays private until the session is live.",
         }
       : phase === "live"
         ? {
             className:
-              "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100",
+              "border-primary/25 bg-primary/10 text-on-surface",
             text: "Live — you still edit only your matrix; aggregated peer views are for the manager driver.",
           }
         : {
             className:
-              "border-zinc-300 bg-zinc-200/60 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+              "border-outline-variant/20 bg-surface-container-highest/80 text-on-surface-variant",
             text: "Session finished — matrix is read-only.",
           };
 
   if (subjects.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-on-surface-variant">
         No one else is on the roster yet. When teammates join, pick them here to
         score.
       </p>
@@ -339,25 +472,29 @@ export function EvaluatorMatrix({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className="flex w-full max-w-6xl flex-col gap-6">
       <div
         className={`rounded-lg border px-4 py-3 text-sm ${phaseBanner.className}`}
       >
         {phaseBanner.text}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <label className="flex w-full max-w-md flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
           Subject
           <select
-            className="max-w-md rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-normal dark:border-zinc-600 dark:bg-zinc-950"
+            className="mt-1 w-full cursor-pointer border-0 border-b border-outline-variant bg-surface-container-low py-2.5 text-sm font-normal text-on-surface focus:border-primary focus:outline-none focus:ring-0 rounded-sm"
             value={effectiveSubject ?? ""}
             onChange={(e) =>
               setSubjectId(e.target.value as Id<"users">)
             }
           >
             {subjects.map((u) => (
-              <option key={u._id} value={u._id}>
+              <option
+                key={u._id}
+                value={u._id}
+                className="bg-surface-container text-on-surface"
+              >
                 {u.name} ({u.slug})
               </option>
             ))}
@@ -365,10 +502,12 @@ export function EvaluatorMatrix({
         </label>
       </div>
 
+      <MatrixWorkspaceHero />
+
       {myRows === undefined ? (
-        <p className="text-sm text-zinc-500">Loading matrix…</p>
+        <p className="text-sm text-on-surface-variant">Loading matrix…</p>
       ) : (
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-12">
           {MATRIX_COMPETENCIES.map((comp) => (
             <SkillBlock
               key={`${effectiveSubject}-${comp.id}`}
