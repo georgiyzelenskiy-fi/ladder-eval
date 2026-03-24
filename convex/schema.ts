@@ -20,6 +20,11 @@ export default defineSchema({
     /** Sequential reveal stub: which competency row is “open” for live calibration. */
     activeRevealSkillId: v.optional(v.string()),
     managerVerdict: v.optional(v.string()),
+    /** Live evaluation wizard (separate from activeRevealSkillId matrix highlight). */
+    liveEvalSkillId: v.optional(v.string()),
+    liveEvalSubjectId: v.optional(v.id("users")),
+    liveEvalRevealOrder: v.optional(v.array(v.id("users"))),
+    liveEvalRevealCursor: v.optional(v.number()),
   }).index("by_slug", ["slug"]),
 
   users: defineTable({
@@ -49,6 +54,23 @@ export default defineSchema({
     .index("by_evaluator_subject_skill", [
       "sessionId",
       "evaluatorId",
+      "subjectId",
+      "skillId",
+    ]),
+
+  /**
+   * Manager committed calibration mark for one (subject, skill) after live peer reveal.
+   */
+  calibrationMarks: defineTable({
+    sessionId: v.id("sessions"),
+    subjectId: v.id("users"),
+    skillId: v.string(),
+    mark: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_session_subject_skill", [
+      "sessionId",
       "subjectId",
       "skillId",
     ]),

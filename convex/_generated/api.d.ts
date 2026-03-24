@@ -10,6 +10,7 @@
 
 import type * as evaluations from "../evaluations.js";
 import type * as health from "../health.js";
+import type * as liveEvaluation from "../liveEvaluation.js";
 import type * as session from "../session.js";
 import type * as users from "../users.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   evaluations: typeof evaluations;
   health: typeof health;
+  liveEvaluation: typeof liveEvaluation;
   session: typeof session;
   users: typeof users;
 }>;

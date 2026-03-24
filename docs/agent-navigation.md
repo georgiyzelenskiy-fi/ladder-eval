@@ -27,6 +27,7 @@
 | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) | DevSync V1 implementation palette: hex tokens, layout shell (nav, content), product patterns (heatmap, radar, Dreyfus checkboxes), motion & gating notes | Colors, Inter/Roboto Mono, Tailwind + Material Symbols, bias-mitigation UI states |
 | [skill-evaluation.html](./skill-evaluation.html) | Static HTML prototype: per-skill evaluation (level rubric, criteria checkboxes, rationale, manual mark) | Evaluator matrix UI, Dreyfus-style descriptors, split-pane layout |
 | [developer-dashboard.html](./developer-dashboard.html) | Static HTML prototype: developer-facing dashboard (summary, competency grid, trends placeholder) | Post-eval read-only views, radar-style summary strip |
+| [live-group-evaluation.html](./live-group-evaluation.html) | Static HTML prototype: manager live calibration (skill tabs, subject header, sequential peer reveal queue, final calibration, rationale modal) | Live evaluation route UX (`/room/live-evaluation`), matrix + popover patterns |
 
 *Add new rows above this line when new docs appear.*
 
@@ -48,6 +49,7 @@
 | Concrete hex/theme, app shell dimensions, heatmap/radar/checkbox styling, Tailwind/Material Symbols for build | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) |
 | Evaluator skill matrix UI (checkbox tree, manual mark, rationale) — reference implementation | [skill-evaluation.html](./skill-evaluation.html) |
 | Developer results dashboard layout — reference implementation | [developer-dashboard.html](./developer-dashboard.html) |
+| Manager live evaluation (peer reveal queue, calibration matrix) — reference HTML | [live-group-evaluation.html](./live-group-evaluation.html) · App: `/room/live-evaluation` |
 | TypeScript competency definitions (hard/soft, shared level scale) | Repo `lib/skill-rubric-common.ts`, `lib/hard-skills-rubric.ts`, `lib/soft-skills-rubric.ts` |
 
 ---

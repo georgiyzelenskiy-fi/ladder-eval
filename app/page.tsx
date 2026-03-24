@@ -43,6 +43,18 @@ export default function Home() {
             </span>
           </li>
           <li>
+            <Link
+              href="/room/live-evaluation"
+              className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 hover:decoration-zinc-600 dark:text-zinc-100 dark:hover:decoration-zinc-500"
+            >
+              Live evaluation
+            </Link>
+            <span className="text-zinc-500 dark:text-zinc-500">
+              {" "}
+              — sequential peer reveal, calibration marks, matrix
+            </span>
+          </li>
+          <li>
             <span className="text-zinc-600 dark:text-zinc-400">
               Manager (Burger preset):{" "}
             </span>
@@ -85,7 +97,8 @@ export default function Home() {
         <p className="mt-6 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
           Optional: set <code className="rounded bg-zinc-200/70 px-1 dark:bg-zinc-800">MANAGER_ACCESS_KEY</code>{" "}
           in <code className="text-xs">.env.local</code> and open{" "}
-          <code className="text-xs">/room/driver?k=…</code> (server-side gate).
+          <code className="text-xs">/room/driver?k=…</code> or{" "}
+          <code className="text-xs">/room/live-evaluation?k=…</code> (server-side gate).
         </p>
       </main>
     </div>

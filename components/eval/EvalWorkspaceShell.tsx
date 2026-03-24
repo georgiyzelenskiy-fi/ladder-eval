@@ -66,7 +66,8 @@ export function EvalWorkspaceShell({
             const isDriver =
               !item.disabled &&
               item.href === "/room/driver" &&
-              pathname.startsWith("/room/driver");
+              (pathname.startsWith("/room/driver") ||
+                pathname.startsWith("/room/live-evaluation"));
             const highlighted = active || isDashboard || isDriver;
 
             if (item.disabled) {

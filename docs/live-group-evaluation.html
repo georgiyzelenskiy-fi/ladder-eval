@@ -1,0 +1,810 @@
+<!doctype html>
+
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DevSync | Manager Control Room</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#282d31",
+              "outline-variant": "#45484c",
+              "inverse-on-surface": "#535559",
+              "tertiary-fixed": "#bca2ff",
+              "surface-variant": "#22262b",
+              "secondary-fixed-dim": "#a1c5ff",
+              "secondary-container": "#005fb0",
+              "on-primary-fixed": "#000000",
+              "error-container": "#9f0519",
+              "on-secondary-container": "#f6f7ff",
+              "primary-dim": "#15a4ff",
+              "inverse-surface": "#f8f9fe",
+              "tertiary-fixed-dim": "#b091ff",
+              "on-secondary-fixed-variant": "#005197",
+              "error-dim": "#d7383b",
+              "on-primary": "#003151",
+              "on-tertiary-fixed": "#1e0053",
+              "on-tertiary": "#3a1482",
+              "on-primary-container": "#00253f",
+              "surface-container-lowest": "#000000",
+              "secondary-fixed": "#b9d3ff",
+              "primary-fixed-dim": "#0099f0",
+              "on-error-container": "#ffa8a3",
+              "on-surface": "#f8f9fe",
+              "on-primary-fixed-variant": "#002e4d",
+              primary: "#5eb4ff",
+              tertiary: "#bca2ff",
+              "on-secondary-fixed": "#003466",
+              "inverse-primary": "#00639e",
+              "on-secondary": "#002043",
+              "surface-container-high": "#1c2024",
+              "tertiary-container": "#b091ff",
+              surface: "#0b0e11",
+              "on-surface-variant": "#a9abaf",
+              "surface-dim": "#0b0e11",
+              "surface-container": "#161a1e",
+              background: "#0b0e11",
+              "tertiary-dim": "#ab8bf9",
+              "surface-container-highest": "#22262b",
+              "on-background": "#f8f9fe",
+              "primary-container": "#2aa7ff",
+              outline: "#737679",
+              "secondary-dim": "#599ffb",
+              "surface-container-low": "#101417",
+              "on-tertiary-container": "#2e0075",
+              "on-error": "#490006",
+              "primary-fixed": "#2aa7ff",
+              "on-tertiary-fixed-variant": "#43208b",
+              "surface-tint": "#5eb4ff",
+              secondary: "#599ffb",
+              error: "#ff716c",
+            },
+            fontFamily: {
+              headline: ["Inter"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+        vertical-align: middle;
+      }
+      .glass-panel {
+        background: rgba(22, 26, 30, 0.8);
+        backdrop-filter: blur(12px);
+      }
+      .neon-glow-primary {
+        box-shadow: 0 0 15px -3px rgba(94, 180, 255, 0.3);
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .tab-active {
+        border-bottom: 2px solid #5eb4ff;
+        color: #5eb4ff;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary min-h-screen flex flex-col antialiased overflow-hidden"
+  >
+    <header
+      class="bg-[#0B0E11] dark:bg-[#0B0E11] font-['Inter'] tracking-tight antialiased docked full-width top-0 z-50 flex justify-between items-center w-full px-6 h-16 border-b border-white/5"
+    >
+      <div class="flex items-center gap-8">
+        <span
+          class="text-xl font-bold tracking-tighter text-[#F8F9FE] dark:text-[#F8F9FE]"
+          >DevSync</span
+        >
+        <nav class="hidden md:flex items-center gap-6">
+          <a
+            class="text-slate-400 hover:text-slate-200 transition-colors"
+            href="#"
+            >Dashboard</a
+          >
+          <a
+            class="text-slate-400 hover:text-slate-200 transition-colors"
+            href="#"
+            >Metrics</a
+          >
+          <a class="text-blue-400 border-b-2 border-blue-500 pb-1" href="#"
+            >Reviews</a
+          >
+          <a
+            class="text-slate-400 hover:text-slate-200 transition-colors"
+            href="#"
+            >Teams</a
+          >
+        </nav>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 mr-4">
+          <span
+            class="px-3 py-1 text-xs font-semibold bg-surface-container-high text-on-surface-variant rounded-full border border-outline-variant/20 uppercase tracking-widest"
+            >Manager</span
+          >
+        </div>
+        <button
+          class="text-slate-400 hover:text-slate-200 transition-all duration-200"
+        >
+          <span class="material-symbols-outlined" data-icon="notifications"
+            >notifications</span
+          >
+        </button>
+        <button
+          class="text-slate-400 hover:text-slate-200 transition-all duration-200"
+        >
+          <span class="material-symbols-outlined" data-icon="settings"
+            >settings</span
+          >
+        </button>
+        <div
+          class="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-surface-container"
+        >
+          <img
+            alt="User Profile Avatar"
+            data-alt="close-up portrait of a professional male manager"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoSOtbO2yo0T8EQ5fV5-ITM-wMnMh9Foy9mM71xCUweRN22lV3kOIOGhxHRlLlenV7QmdoXuCDAVqqR2hoRnMba2pd4xAowoM9QUxQ9u5bPyf5CS6wMxzkqVRy-6ffB-W9GX-buixiYXbBt5Gea-KYMzmBhD_p4PiecWcHQo0af-gvTlORBkYYaJRtu9KhzmU-_xhjp4fUl9R5m5b1jx2Zsq9tZ9dVujAIhZltVJeLors-h3eIQtwDd5fZsAlBf0WoNtrgSgIy8W0"
+          />
+        </div>
+      </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+      <aside
+        class="hidden md:flex flex-col h-full py-4 space-y-2 bg-[#0B0E11] dark:bg-[#0B0E11] docked left-0 w-64 border-r border-white/5"
+      >
+        <div class="px-6 mb-8">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 bg-blue-500/10 rounded flex items-center justify-center border border-blue-500/20"
+            >
+              <span
+                class="material-symbols-outlined text-blue-500"
+                data-icon="analytics"
+                >analytics</span
+              >
+            </div>
+            <div>
+              <div class="text-blue-500 font-black">PERFORMANCE</div>
+              <div
+                class="text-[10px] text-on-surface-variant uppercase tracking-widest"
+              >
+                V2.4.0-Stable
+              </div>
+            </div>
+          </div>
+        </div>
+        <nav class="flex-1 space-y-1">
+          <div
+            class="px-4 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest opacity-50"
+          >
+            Navigation
+          </div>
+          <a
+            class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined text-lg"
+              data-icon="analytics"
+              >analytics</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Overview</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-6 py-3 bg-blue-500/10 text-blue-400 border-r-2 border-blue-500 transition-all group"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-lg" data-icon="layers"
+              >layers</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Skill Matrix</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
+            href="#"
+          >
+            <span
+              class="material-symbols-outlined text-lg"
+              data-icon="trending_up"
+              >trending_up</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Performance Levels</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-lg" data-icon="terminal"
+              >terminal</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Git Analytics</span
+            >
+          </a>
+          <a
+            class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors group"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-lg" data-icon="group"
+              >group</span
+            >
+            <span
+              class="font-['Inter'] uppercase tracking-widest text-[10px] font-semibold"
+              >Peer Feedback</span
+            >
+          </a>
+        </nav>
+        <div class="px-4 py-4 mt-auto">
+          <button
+            class="w-full bg-primary-container text-on-primary-fixed py-2 rounded font-bold text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all"
+          >
+            Export Report
+          </button>
+        </div>
+      </aside>
+      <main class="flex-1 overflow-y-auto bg-surface-container relative">
+        <!-- Top Skill Navigation -->
+        <nav
+          class="sticky top-0 z-40 bg-surface-container-high border-b border-white/5 px-6 pt-4"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-4">
+              <span
+                class="text-on-surface-variant text-[10px] uppercase tracking-[0.2em] font-bold"
+                >Calibration Active</span
+              >
+              <div class="h-1 w-1 rounded-full bg-error animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-24 h-1 bg-surface-container-highest rounded-full overflow-hidden"
+                >
+                  <div class="bg-primary h-full w-[65%]"></div>
+                </div>
+                <span class="text-primary text-[10px] font-mono"
+                  >03/05 Subjects</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-8 overflow-x-auto no-scrollbar">
+            <button
+              class="tab-active px-2 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+            >
+              Code Reviews
+            </button>
+            <button
+              class="text-on-surface-variant hover:text-on-surface px-2 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors"
+            >
+              Emplifi Domain Knowledge
+            </button>
+            <button
+              class="text-on-surface-variant hover:text-on-surface px-2 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors"
+            >
+              Technology Knowledge
+            </button>
+            <button
+              class="text-on-surface-variant hover:text-on-surface px-2 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors"
+            >
+              Problem Solving
+            </button>
+            <button
+              class="text-on-surface-variant hover:text-on-surface px-2 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors"
+            >
+              Learning Concepts
+            </button>
+          </div>
+        </nav>
+        <div class="p-6">
+          <!-- Sleek Compact Profile Header -->
+          <div
+            class="bg-surface-container-high rounded-xl p-4 border border-primary/20 flex items-center justify-between mb-8"
+          >
+            <div class="flex items-center gap-6">
+              <div class="relative">
+                <div
+                  class="w-16 h-16 rounded-full border-2 border-primary p-0.5"
+                >
+                  <div
+                    class="w-full h-full rounded-full overflow-hidden bg-surface-container-highest"
+                  >
+                    <img
+                      alt="Subject Profile Avatar"
+                      data-alt="profile portrait of a young developer"
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVz3sbAw7zUoxmOCKYvTL4ZCA2jSGpk0uaiwPJb5e1i-rUP1bPjIEFRGRh_v6ZjJkNJa8awqY_GtEUP0ttS6XSY-ueYdXqNxGU_ao_FJXOfiQMnColYUpIsQGHH9hzL-jA4_ma3KapQwBdzALf0JskOggJsynPpOhE7W72i53OtVsAOcUJDpvO8OpWYw7tHxWmxGQkaaUJZkoexrNFCnGHF4KnT-7dyZ9EMBrwGLKG78v-zYd1flK1DB0dyPLA3NzwieA6tRs4bU4"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="absolute -bottom-1 -right-1 bg-primary text-on-primary-fixed px-1.5 py-0.5 rounded text-[8px] font-black tracking-tighter"
+                >
+                  L4 SENIOR
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center gap-3">
+                  <h2
+                    class="text-xl font-black tracking-tight text-on-surface uppercase"
+                  >
+                    Elena Rodriguez
+                  </h2>
+                  <span
+                    class="text-on-surface-variant text-[10px] font-mono tracking-widest uppercase opacity-50"
+                    >DEV-8821-X</span
+                  >
+                </div>
+                <div class="flex gap-4 mt-1">
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest"
+                      >Baseline:</span
+                    >
+                    <span class="text-[10px] font-mono text-on-surface"
+                      >4.1</span
+                    >
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest"
+                      >Team Avg:</span
+                    >
+                    <span class="text-[10px] font-mono text-on-surface"
+                      >3.8</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button
+                class="px-4 py-2 border border-outline-variant/30 rounded-lg text-on-surface-variant text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-all flex items-center gap-2"
+              >
+                <span
+                  class="material-symbols-outlined text-sm"
+                  data-icon="shuffle"
+                  >shuffle</span
+                >
+                Randomize Subject
+              </button>
+              <div class="h-10 w-[1px] bg-outline-variant/30 mx-2"></div>
+              <div
+                class="bg-surface-container p-2 rounded-lg border border-outline-variant/10 min-w-[140px]"
+              >
+                <span
+                  class="block text-[8px] text-on-surface-variant uppercase tracking-widest font-bold"
+                  >Session ID</span
+                >
+                <span class="text-xs font-mono text-primary">SYNC-098-X</span>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-12 gap-8">
+            <!-- Reveal Queue Grid (6 Evaluators) -->
+            <div class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+              <div class="flex justify-between items-center">
+                <div>
+                  <span
+                    class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] font-bold"
+                    >Live Scoring Panel</span
+                  >
+                  <h3 class="text-lg font-bold text-on-surface">
+                    The Reveal Queue
+                  </h3>
+                </div>
+                <div class="flex gap-3">
+                  <button
+                    class="bg-primary-container text-on-primary-fixed px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all neon-glow-primary flex items-center gap-2"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="visibility"
+                      >visibility</span
+                    >
+                    Reveal Next (2/6)
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <!-- Revealed Evaluator 1 -->
+                <div
+                  class="bg-surface-container-high rounded-xl p-5 border border-primary/30 flex flex-col relative"
+                >
+                  <div class="flex items-center gap-3 mb-4">
+                    <div
+                      class="w-10 h-10 rounded-lg overflow-hidden border border-outline-variant/30"
+                    >
+                      <img
+                        alt="Evaluator Avatar"
+                        data-alt="Marcus portrait"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2vv4nOlkOdQHu1m_NXGf7pZbIEPkkmTV-eIv_Ci2jTjdF7ZU0etDJoAbNX7Ivcyh_-BRwWWDfgb55j7rYQ87LhuiQLJ3XQAFNjaG3_gqDOO31yEJvw60itXLhQNrWMuE_pfybYktPJ0v1blFoyX-lLWmA7CXpTiTg7XmwEbdNApPizJP-nZ1nmz90r9Wx-PVjcT3D6Rbb0UTx0GYq0Exoyye8G4aLtvllzfvAbTJyrzouosW-JKuVCtOK6lGFNe88l4c50jV7z5I"
+                      />
+                    </div>
+                    <div class="flex flex-col">
+                      <h4
+                        class="text-[10px] font-black text-on-surface uppercase tracking-tight leading-none"
+                      >
+                        Marcus Thorne
+                      </h4>
+                      <span
+                        class="text-[8px] text-primary font-bold uppercase tracking-widest mt-1"
+                        >REVEALED</span
+                      >
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div
+                      class="bg-surface-container p-2.5 rounded-lg border border-outline-variant/10 text-center"
+                    >
+                      <span
+                        class="block text-[8px] text-on-surface-variant uppercase font-bold mb-1"
+                        >Manual Mark</span
+                      >
+                      <span class="text-2xl font-black text-on-surface">4</span>
+                    </div>
+                    <div
+                      class="bg-surface-container p-2.5 rounded-lg border border-outline-variant/10 text-center"
+                    >
+                      <span
+                        class="block text-[8px] text-on-surface-variant uppercase font-bold mb-1"
+                        >UI Estimate</span
+                      >
+                      <span class="text-2xl font-black text-secondary"
+                        >4.2</span
+                      >
+                    </div>
+                  </div>
+                  <button
+                    class="w-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest py-2.5 border border-outline-variant/30 rounded hover:bg-surface-bright transition-all text-on-surface-variant hover:text-on-surface"
+                  >
+                    <span
+                      class="material-symbols-outlined text-xs"
+                      data-icon="article"
+                      >article</span
+                    >
+                    View Rationale
+                  </button>
+                </div>
+                <!-- Revealed Evaluator 2 -->
+                <div
+                  class="bg-surface-container-high rounded-xl p-5 border border-primary/30 flex flex-col relative"
+                >
+                  <div class="flex items-center gap-3 mb-4">
+                    <div
+                      class="w-10 h-10 rounded-lg overflow-hidden border border-outline-variant/30"
+                    >
+                      <img
+                        alt="Evaluator Avatar"
+                        data-alt="Sarah portrait"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBumM9aGzfrCc2dqGituwZvbaFsXGUntdnYhK4L2Fz7h6nrUxKEhq1V4gIr9K_mwyEn9z308WkmUU25cTI5kWsztej-9wYGofvMZ66CDQpMlr_CY4RKv1lqX8KandgwofopQ38xhPzbecvs5wlE4lc-lIhzxh7fZKzcnuwlhHNtb3HNbHMPJLLJxrfeGVKqcqjgY0ZIrD3tiZ8H9OLXvogsNOI6J2hTRSXaPcBCv2QFOpMo_zOslp33GwEQcaXeDsy70Iw2lZKkXp0"
+                      />
+                    </div>
+                    <div class="flex flex-col">
+                      <h4
+                        class="text-[10px] font-black text-on-surface uppercase tracking-tight leading-none"
+                      >
+                        Sarah Chen
+                      </h4>
+                      <span
+                        class="text-[8px] text-primary font-bold uppercase tracking-widest mt-1"
+                        >REVEALED</span
+                      >
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div
+                      class="bg-surface-container p-2.5 rounded-lg border border-outline-variant/10 text-center"
+                    >
+                      <span
+                        class="block text-[8px] text-on-surface-variant uppercase font-bold mb-1"
+                        >Manual Mark</span
+                      >
+                      <span class="text-2xl font-black text-on-surface">5</span>
+                    </div>
+                    <div
+                      class="bg-surface-container p-2.5 rounded-lg border border-outline-variant/10 text-center"
+                    >
+                      <span
+                        class="block text-[8px] text-on-surface-variant uppercase font-bold mb-1"
+                        >UI Estimate</span
+                      >
+                      <span class="text-2xl font-black text-secondary"
+                        >4.5</span
+                      >
+                    </div>
+                  </div>
+                  <button
+                    class="w-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest py-2.5 border border-outline-variant/30 rounded hover:bg-surface-bright transition-all text-on-surface-variant hover:text-on-surface"
+                  >
+                    <span
+                      class="material-symbols-outlined text-xs"
+                      data-icon="article"
+                      >article</span
+                    >
+                    View Rationale
+                  </button>
+                </div>
+                <!-- Queued Evaluator 3 (Hidden/Locked) -->
+                <div
+                  class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/20 flex flex-col items-center justify-center min-h-[180px] group border-dashed"
+                >
+                  <span
+                    class="material-symbols-outlined text-2xl text-outline-variant/40 mb-3"
+                    data-icon="lock"
+                    >lock</span
+                  >
+                  <span
+                    class="text-[9px] text-outline-variant uppercase tracking-widest font-black"
+                    >LOCKED EVALUATOR</span
+                  >
+                </div>
+                <!-- Queued Evaluator 4 (Hidden/Locked) -->
+                <div
+                  class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/20 flex flex-col items-center justify-center min-h-[180px] group border-dashed"
+                >
+                  <span
+                    class="material-symbols-outlined text-2xl text-outline-variant/40 mb-3"
+                    data-icon="lock"
+                    >lock</span
+                  >
+                  <span
+                    class="text-[9px] text-outline-variant uppercase tracking-widest font-black"
+                    >LOCKED EVALUATOR</span
+                  >
+                </div>
+                <!-- Queued Evaluator 5 (Hidden/Locked) -->
+                <div
+                  class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/20 flex flex-col items-center justify-center min-h-[180px] group border-dashed"
+                >
+                  <span
+                    class="material-symbols-outlined text-2xl text-outline-variant/40 mb-3"
+                    data-icon="lock"
+                    >lock</span
+                  >
+                  <span
+                    class="text-[9px] text-outline-variant uppercase tracking-widest font-black"
+                    >LOCKED EVALUATOR</span
+                  >
+                </div>
+                <!-- Queued Evaluator 6 (Hidden/Locked) -->
+                <div
+                  class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/20 flex flex-col items-center justify-center min-h-[180px] group border-dashed"
+                >
+                  <span
+                    class="material-symbols-outlined text-2xl text-outline-variant/40 mb-3"
+                    data-icon="lock"
+                    >lock</span
+                  >
+                  <span
+                    class="text-[9px] text-outline-variant uppercase tracking-widest font-black"
+                    >LOCKED EVALUATOR</span
+                  >
+                </div>
+              </div>
+            </div>
+            <!-- Manager Final Calibration Panel (Right Side) -->
+            <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+              <div
+                class="bg-surface-container-highest rounded-xl p-6 border-2 border-primary/40 glass-panel shadow-2xl flex flex-col"
+              >
+                <div class="flex items-center gap-3 mb-6">
+                  <span
+                    class="w-8 h-8 rounded bg-primary/20 flex items-center justify-center"
+                  >
+                    <span
+                      class="material-symbols-outlined text-primary text-sm"
+                      data-icon="gavel"
+                      >gavel</span
+                    >
+                  </span>
+                  <h3
+                    class="text-sm font-black text-on-surface uppercase tracking-tight"
+                  >
+                    Final Calibration
+                  </h3>
+                </div>
+                <p class="text-xs text-on-surface-variant leading-relaxed mb-8">
+                  Finalize Elena's score for
+                  <span class="text-primary font-bold">Code Reviews</span> based
+                  on the current evaluator reveals.
+                </p>
+                <div class="space-y-6">
+                  <div>
+                    <label
+                      class="block text-[10px] text-on-surface-variant uppercase tracking-[0.2em] font-black mb-2"
+                      >Manual Override</label
+                    >
+                    <input
+                      class="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-3xl font-black text-on-surface py-2 transition-colors"
+                      type="text"
+                      value="4.3"
+                    />
+                  </div>
+                  <div
+                    class="bg-surface-container-low p-4 rounded-lg border border-outline-variant/20"
+                  >
+                    <div class="flex justify-between items-center mb-2">
+                      <span
+                        class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest"
+                        >Calculated Delta</span
+                      >
+                      <span class="text-xs font-mono text-primary">+0.2</span>
+                    </div>
+                    <div class="flex gap-1">
+                      <div
+                        class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden"
+                      >
+                        <div class="h-full bg-primary w-2/3"></div>
+                      </div>
+                      <div
+                        class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden"
+                      >
+                        <div class="h-full bg-outline-variant w-1/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    class="w-full bg-primary text-on-primary-fixed py-4 rounded font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(94,180,255,0.3)]"
+                  >
+                    Commit Baseline
+                  </button>
+                  <button
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-surface-variant py-3 rounded text-[10px] font-black uppercase tracking-widest hover:text-on-surface transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span
+                      class="material-symbols-outlined text-sm"
+                      data-icon="history"
+                      >history</span
+                    >
+                    Full History
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- Rationale Popover (Simulated Modal - Hidden by default) -->
+    <div
+      class="fixed inset-0 bg-surface/90 backdrop-blur-md z-[100] flex items-center justify-center hidden"
+    >
+      <div
+        class="bg-surface-container-high w-full max-w-2xl rounded-2xl border border-primary/20 shadow-2xl overflow-hidden"
+      >
+        <div
+          class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-highest"
+        >
+          <div class="flex items-center gap-4">
+            <div
+              class="w-10 h-10 rounded-lg overflow-hidden border border-outline-variant/20"
+            >
+              <img
+                alt="Evaluator Avatar"
+                data-alt="Marcus portrait"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2vv4nOlkOdQHu1m_NXGf7pZbIEPkkmTV-eIv_Ci2jTjdF7ZU0etDJoAbNX7Ivcyh_-BRwWWDfgb55j7rYQ87LhuiQLJ3XQAFNjaG3_gqDOO31yEJvw60itXLhQNrWMuE_pfybYktPJ0v1blFoyX-lLWmA7CXpTiTg7XmwEbdNApPizJP-nZ1nmz90r9Wx-PVjcT3D6Rbb0UTx0GYq0Exoyye8G4aLtvllzfvAbTJyrzouosW-JKuVCtOK6lGFNe88l4c50jV7z5I"
+              />
+            </div>
+            <div>
+              <h4 class="text-base font-bold text-on-surface uppercase">
+                Marcus Thorne's Rationale
+              </h4>
+              <span
+                class="text-[10px] text-on-surface-variant uppercase tracking-widest"
+                >Skill: Code Reviews</span
+              >
+            </div>
+          </div>
+          <button
+            class="p-2 hover:bg-surface-bright rounded-full transition-colors"
+          >
+            <span class="material-symbols-outlined" data-icon="close"
+              >close</span
+            >
+          </button>
+        </div>
+        <div class="p-8 grid grid-cols-2 gap-8">
+          <div class="space-y-6">
+            <h5
+              class="text-[10px] text-primary uppercase font-black tracking-[0.2em]"
+            >
+              Checklist Data
+            </h5>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <span
+                  class="material-symbols-outlined text-primary text-sm"
+                  data-icon="check_circle"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >check_circle</span
+                >
+                <span class="text-xs text-on-surface"
+                  >Consistency in review feedback</span
+                >
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="material-symbols-outlined text-primary text-sm"
+                  data-icon="check_circle"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >check_circle</span
+                >
+                <span class="text-xs text-on-surface"
+                  >Technical accuracy of comments</span
+                >
+              </div>
+              <div class="flex items-center gap-3">
+                <span
+                  class="material-symbols-outlined text-primary text-sm"
+                  data-icon="check_circle"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >check_circle</span
+                >
+                <span class="text-xs text-on-surface"
+                  >Constructive mentorship tone</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="space-y-6">
+            <h5
+              class="text-[10px] text-primary uppercase font-black tracking-[0.2em]"
+            >
+              Qualitative Feedback
+            </h5>
+            <p class="text-sm text-on-surface-variant italic leading-relaxed">
+              "Elena has significantly improved her architectural oversight. Her
+              comments on the recent Microservices transition PR were critical
+              in preventing a circular dependency."
+            </p>
+          </div>
+        </div>
+        <div class="p-6 bg-surface-container flex justify-end gap-3">
+          <button
+            class="px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest text-on-surface-variant border border-outline-variant/30"
+          >
+            Close View
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

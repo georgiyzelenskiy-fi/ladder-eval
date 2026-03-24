@@ -121,6 +121,13 @@ export function DriverClient() {
             <code className="rounded bg-zinc-200/80 px-1 py-0.5 text-xs dark:bg-zinc-800">
               {DEFAULT_SESSION_SLUG}
             </code>
+            . For sequential peer reveal per skill, use{" "}
+            <a
+              href="/room/live-evaluation"
+              className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 dark:text-zinc-100"
+            >
+              Live evaluation
+            </a>
             .
           </p>
         </div>
