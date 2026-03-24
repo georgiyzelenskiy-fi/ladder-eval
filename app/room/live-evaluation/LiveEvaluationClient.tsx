@@ -3,6 +3,10 @@
 import { SkillBlock } from "@/components/eval/SkillBlock";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import {
+  persistManagerAccessKey,
+  useStoredManagerAccessKey,
+} from "@/lib/devsync-browser";
 import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import { competencyToCheckpoints } from "@/lib/skill-checkpoints";
@@ -75,13 +79,23 @@ type DetailCell = { subjectId: Id<"users">; skillId: string };
 const EMPTY_PEER_ORDER: Id<"users">[] = [];
 
 export function LiveEvaluationClient({
-  canManage,
-  managerKey,
+  managerGateActive,
+  managerKey: managerKeyFromUrl,
 }: {
-  canManage: boolean;
-  /** Same value as `?k=` when manager gate is enabled; forwarded to Convex mutations. */
+  /** True when `MANAGER_ACCESS_KEY` is set in Convex / Next env (mutations require a key). */
+  managerGateActive: boolean;
+  /** `?k=` from this request; persisted to localStorage when present for later visits without the query. */
   managerKey?: string;
 }) {
+  const storedManagerKey = useStoredManagerAccessKey();
+  const effectiveManagerKey =
+    managerKeyFromUrl ?? storedManagerKey ?? undefined;
+  const canManage = !managerGateActive || Boolean(effectiveManagerKey);
+
+  useEffect(() => {
+    if (managerKeyFromUrl) persistManagerAccessKey(managerKeyFromUrl);
+  }, [managerKeyFromUrl]);
+
   const ensureSession = useMutation(api.session.ensureSession);
   const session = useQuery(api.session.getSession, { slug: DEFAULT_SESSION_SLUG });
   const sessionId = session?._id;
@@ -151,7 +165,7 @@ export function LiveEvaluationClient({
     void setLiveEvalSkill({
       sessionId,
       skillId: firstSkillId,
-      managerKey,
+      managerKey: effectiveManagerKey,
     });
   }, [
     canManage,
@@ -159,7 +173,7 @@ export function LiveEvaluationClient({
     session,
     firstSkillId,
     setLiveEvalSkill,
-    managerKey,
+    effectiveManagerKey,
   ]);
 
   const nameByUserId = useMemo(() => {
@@ -337,12 +351,15 @@ export function LiveEvaluationClient({
         >
           <span className="font-semibold text-warning">View only.</span> The
           manager controls skill focus, subject, reveal order, and baseline
-          commits. Open this page with{" "}
+          commits. Open once with{" "}
           <code className="rounded bg-surface-container-high px-1 font-mono text-[10px]">
             ?k=…
           </code>{" "}
-          when <code className="font-mono text-[10px]">MANAGER_ACCESS_KEY</code>{" "}
-          is set (and mirror that key in your Convex deployment env).
+          while <code className="font-mono text-[10px]">MANAGER_ACCESS_KEY</code>{" "}
+          is set — this browser stores the key for later visits without the query
+          string. The sidebar &quot;Live calibration&quot; link adds{" "}
+          <code className="font-mono text-[10px]">?k=</code> automatically when a
+          key is stored. Mirror the same secret in Convex.
         </div>
       ) : null}
 
@@ -388,7 +405,7 @@ export function LiveEvaluationClient({
                       setLiveEvalSkill({
                         sessionId: session._id,
                         skillId: c.id,
-                        managerKey,
+                        managerKey: effectiveManagerKey,
                       }),
                     )
                   }
@@ -480,7 +497,7 @@ export function LiveEvaluationClient({
                     setLiveEvalSubject({
                       sessionId: session._id,
                       subjectId: v,
-                      managerKey,
+                      managerKey: effectiveManagerKey,
                     }),
                   );
                 }}
@@ -501,7 +518,7 @@ export function LiveEvaluationClient({
                   run("rand-subj", () =>
                     randomizeLiveEvalSubject({
                       sessionId: session._id,
-                      managerKey,
+                      managerKey: effectiveManagerKey,
                     }),
                   )
                 }
@@ -546,7 +563,7 @@ export function LiveEvaluationClient({
                       run("reveal", () =>
                         liveEvalRevealNext({
                           sessionId: session._id,
-                          managerKey,
+                          managerKey: effectiveManagerKey,
                         }),
                       )
                     }
@@ -655,7 +672,7 @@ export function LiveEvaluationClient({
                       run("reset-reveal", () =>
                         resetLiveEvalReveal({
                           sessionId: session._id,
-                          managerKey,
+                          managerKey: effectiveManagerKey,
                         }),
                       )
                     }
@@ -675,7 +692,7 @@ export function LiveEvaluationClient({
                       run("shuffle", () =>
                         shuffleLiveEvalOrder({
                           sessionId: session._id,
-                          managerKey,
+                          managerKey: effectiveManagerKey,
                         }),
                       )
                     }
@@ -782,7 +799,7 @@ export function LiveEvaluationClient({
                             subjectId: liveSubjectId,
                             skillId: liveSkillId,
                             mark: n,
-                            managerKey,
+                            managerKey: effectiveManagerKey,
                           }),
                         );
                       }}

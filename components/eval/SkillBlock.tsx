@@ -10,7 +10,7 @@ import {
 } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import type { SkillCompetency } from "@/lib/skill-rubric-common";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 const COMPETENCY_ICONS: Record<string, string> = {
   "code-reviews": "rate_review",
@@ -106,6 +106,10 @@ export function SkillBlock({
   const [rationaleDraft, setRationaleDraft] = useState(
     () => row?.rationale ?? "",
   );
+  const [expanded, setExpanded] = useState(true);
+  const bodyId = useId();
+  const collapseLocked = revealHighlight;
+  const showBody = expanded || collapseLocked;
 
   const icon = competencyIcon(competency.id);
   const sectionRef = useRef<HTMLElement>(null);
@@ -135,25 +139,51 @@ export function SkillBlock({
       ref={sectionRef}
       className={`${scrollMt} overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low ${shellShadow} transition-opacity duration-300 ${revealShell} ${revealDim}`}
     >
-      <div className="flex flex-col gap-4 border-b border-outline-variant/20 bg-surface-container-high px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-primary/20 bg-surface-container">
-            <span className="material-symbols-outlined text-2xl text-primary">
-              {icon}
+      <div
+        className={`flex flex-col gap-4 bg-surface-container-high px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5 ${showBody ? "border-b border-outline-variant/20" : ""}`}
+      >
+        <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
+          <button
+            type="button"
+            disabled={collapseLocked}
+            aria-expanded={showBody}
+            aria-controls={bodyId}
+            title={
+              collapseLocked
+                ? "Expanded while this skill is the live focus"
+                : showBody
+                  ? "Collapse competency"
+                  : "Expand competency"
+            }
+            onClick={() => {
+              if (collapseLocked) return;
+              setExpanded((e) => !e);
+            }}
+            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/25 text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-surface-bright hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 sm:mt-0"
+          >
+            <span className="material-symbols-outlined text-xl">
+              {showBody ? "expand_less" : "expand_more"}
             </span>
-          </div>
-          <div>
-            <h2 className="text-xl font-black uppercase tracking-tight text-on-surface">
-              {competency.name}
-            </h2>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-              Dimension focus:{" "}
-              {competency.dimensions.slice(0, 3).join(", ")}
-              {competency.dimensions.length > 3 ? "…" : ""}
-            </p>
+          </button>
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-primary/20 bg-surface-container">
+              <span className="material-symbols-outlined text-2xl text-primary">
+                {icon}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xl font-black uppercase tracking-tight text-on-surface">
+                {competency.name}
+              </h2>
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                Dimension focus:{" "}
+                {competency.dimensions.slice(0, 3).join(", ")}
+                {competency.dimensions.length > 3 ? "…" : ""}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-end gap-6">
+        <div className="flex flex-wrap items-end gap-6 pl-11 sm:pl-0">
           <div className="flex flex-col items-end gap-1">
             <span className="text-[9px] font-bold uppercase tracking-tighter text-on-surface-variant">
               Evaluator mark (1–5)
@@ -205,17 +235,19 @@ export function SkillBlock({
         </div>
       </div>
 
-      {score.prematurePeakLevels.length > 0 ? (
-        <div className="border-b border-warning-muted bg-warning/10 px-4 py-2.5 text-xs text-on-surface">
-          <span className="font-semibold text-warning">Premature peaks: </span>
-          Criteria two or more rungs above your fully met level are checked
-          (levels {score.prematurePeakLevels.join(", ")}). The next rung may
-          still be partial — that is normal. Calibration may be needed at
-          reveal.
-        </div>
-      ) : null}
+      {showBody ? (
+        <div id={bodyId}>
+          {score.prematurePeakLevels.length > 0 ? (
+            <div className="border-b border-warning-muted bg-warning/10 px-4 py-2.5 text-xs text-on-surface">
+              <span className="font-semibold text-warning">Premature peaks: </span>
+              Criteria two or more rungs above your fully met level are checked
+              (levels {score.prematurePeakLevels.join(", ")}). The next rung may
+              still be partial — that is normal. Calibration may be needed at
+              reveal.
+            </div>
+          ) : null}
 
-      <div className="grid gap-1 bg-surface-container-lowest p-1 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-1 bg-surface-container-lowest p-1 sm:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4, 5].map((level) => {
           const groupsAt = groupsByLevel.get(level) ?? [];
           const rub = competency.levels.find((l) => l.number === level);
@@ -373,31 +405,35 @@ export function SkillBlock({
             </div>
           );
         })}
-      </div>
+          </div>
 
-      <div className="grid gap-6 border-t border-outline-variant/10 bg-surface-container-low p-6">
-        <label className="flex flex-col gap-2">
-          <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-            <span className="material-symbols-outlined text-sm">edit_note</span>
-            Rationale / notes
-          </span>
-          <textarea
-            rows={4}
-            disabled={readOnly}
-            className="resize-none rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-            value={rationaleDraft}
-            onChange={(e) => setRationaleDraft(e.target.value)}
-            onBlur={() => {
-              const next = rationaleDraft.trim();
-              const prev = (row?.rationale ?? "").trim();
-              if (next !== prev) {
-                onSaveMeta(competency.id, undefined, next || undefined);
-              }
-            }}
-            placeholder="Optional context for this competency…"
-          />
-        </label>
-      </div>
+          <div className="grid gap-6 border-t border-outline-variant/10 bg-surface-container-low p-6">
+            <label className="flex flex-col gap-2">
+              <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+                <span className="material-symbols-outlined text-sm">
+                  edit_note
+                </span>
+                Rationale / notes
+              </span>
+              <textarea
+                rows={4}
+                disabled={readOnly}
+                className="resize-none rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                value={rationaleDraft}
+                onChange={(e) => setRationaleDraft(e.target.value)}
+                onBlur={() => {
+                  const next = rationaleDraft.trim();
+                  const prev = (row?.rationale ?? "").trim();
+                  if (next !== prev) {
+                    onSaveMeta(competency.id, undefined, next || undefined);
+                  }
+                }}
+                placeholder="Optional context for this competency…"
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

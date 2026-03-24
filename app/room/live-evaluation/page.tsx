@@ -10,7 +10,10 @@ export default async function LiveEvaluationPage({
   const sp = await searchParams;
   const key = typeof sp.k === "string" ? sp.k : undefined;
   const required = process.env.MANAGER_ACCESS_KEY;
-  const canManage = !required || key === required;
+  const managerGateActive = Boolean(required && required.length > 0);
+  /** Only forward `?k=` when it matches env so we never persist a wrong guess to localStorage. */
+  const managerKeyFromUrl =
+    managerGateActive && required && key === required ? key : undefined;
 
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
@@ -36,6 +39,9 @@ export default async function LiveEvaluationPage({
   }
 
   return (
-    <LiveEvaluationClient canManage={canManage} managerKey={key} />
+    <LiveEvaluationClient
+      managerGateActive={managerGateActive}
+      managerKey={managerKeyFromUrl}
+    />
   );
 }

@@ -1,8 +1,14 @@
 "use client";
 
+import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
+import {
+  DEVSYNC_STORAGE_NOTIFY_EVENT,
+  LAST_EVAL_SLUG_STORAGE_KEY,
+} from "@/lib/devsync-constants";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 function humanizeSlug(slug: string) {
   return slug
@@ -19,6 +25,30 @@ type NavItem = {
   disabled?: boolean;
   disabledTitle?: string;
 };
+
+function useLastJoinedEvalSlug(): string | null {
+  return useSyncExternalStore(
+    (onChange) => {
+      if (typeof window === "undefined") return () => {};
+      const onNotify = () => onChange();
+      window.addEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, onNotify);
+      window.addEventListener("storage", onNotify);
+      return () => {
+        window.removeEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, onNotify);
+        window.removeEventListener("storage", onNotify);
+      };
+    },
+    () => {
+      try {
+        const v = localStorage.getItem(LAST_EVAL_SLUG_STORAGE_KEY);
+        return v && v.length > 0 ? v : null;
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
+}
 
 const LIVE_CAL_PATH = "/room/live-evaluation";
 const DRIVER_PATH = "/room/driver";
@@ -43,11 +73,23 @@ export type EvalWorkspaceShellProps = EvalVariantProps | RoomVariantProps;
 
 export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const pathname = usePathname();
+  const storedManagerKey = useStoredManagerAccessKey();
+  const liveCalHref = useMemo(() => {
+    if (storedManagerKey)
+      return `${LIVE_CAL_PATH}?k=${encodeURIComponent(storedManagerKey)}`;
+    return LIVE_CAL_PATH;
+  }, [storedManagerKey]);
+  const lastJoinedEvalSlug = useLastJoinedEvalSlug();
   const isRoom = props.variant === "room";
   const evalSlug = props.variant === "room" ? null : props.slug;
   const roomHeaderTitle = props.variant === "room" ? props.headerTitle : null;
   const roomSkillMatrixSlug =
     props.variant === "room" ? props.skillMatrixSlug : undefined;
+
+  const roomResolvedMatrixSlug =
+    isRoom && (roomSkillMatrixSlug ?? lastJoinedEvalSlug)
+      ? (roomSkillMatrixSlug ?? lastJoinedEvalSlug)!
+      : null;
 
   const evalPath = evalSlug != null ? `/eval/${evalSlug}` : null;
   const onEval = evalPath != null && pathname === evalPath;
@@ -55,9 +97,9 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const skillMatrixItem: NavItem =
     evalSlug != null
       ? { href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }
-      : roomSkillMatrixSlug
+      : roomResolvedMatrixSlug
         ? {
-            href: `/eval/${roomSkillMatrixSlug}`,
+            href: `/eval/${roomResolvedMatrixSlug}`,
             label: "Skill matrix",
             icon: "hub",
           }
@@ -66,14 +108,15 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
             label: "Skill matrix",
             icon: "hub",
             disabled: true,
-            disabledTitle: "Open your personal matrix link from the home page",
+            disabledTitle:
+              "Join via your /eval/your-slug link once in this browser, then this opens your matrix",
           };
 
   const mainNav: NavItem[] = [
-    { href: "/", label: "Dashboard", icon: "dashboard" },
+    { href: "/", label: "Dashboard", icon: "dashboard", disabled: true },
     skillMatrixItem,
     { href: DRIVER_PATH, label: "Control room", icon: "analytics" },
-    { href: LIVE_CAL_PATH, label: "Live calibration", icon: "groups" },
+    { href: liveCalHref, label: "Live calibration", icon: "groups" },
     { href: "#", label: "Team insights", icon: "group", disabled: true },
     { href: "#", label: "Repository", icon: "terminal", disabled: true },
   ];
@@ -126,8 +169,8 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
             const isSkillMatrixRoom =
               !item.disabled &&
               isRoom &&
-              roomSkillMatrixSlug != null &&
-              item.href === `/eval/${roomSkillMatrixSlug}` &&
+              roomResolvedMatrixSlug != null &&
+              item.href === `/eval/${roomResolvedMatrixSlug}` &&
               pathname === item.href;
             const isControlRoom =
               !item.disabled &&
@@ -135,7 +178,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               pathname.startsWith(DRIVER_PATH);
             const isLiveCal =
               !item.disabled &&
-              item.href === LIVE_CAL_PATH &&
+              item.label === "Live calibration" &&
               pathname.startsWith(LIVE_CAL_PATH);
 
             const highlighted =

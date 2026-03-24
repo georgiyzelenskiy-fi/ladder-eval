@@ -1,7 +1,12 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { DEFAULT_SESSION_SLUG, STORAGE_USER_ID_KEY } from "@/lib/devsync-constants";
+import {
+  DEFAULT_SESSION_SLUG,
+  DEVSYNC_STORAGE_NOTIFY_EVENT,
+  evaluatorUserIdStorageKey,
+  LAST_EVAL_SLUG_STORAGE_KEY,
+} from "@/lib/devsync-constants";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -9,15 +14,9 @@ import { EvaluatorMatrix } from "./EvaluatorMatrix";
 
 type Props = { slug: string };
 
-function storageKeyForSlug(slug: string) {
-  return `${STORAGE_USER_ID_KEY}:${DEFAULT_SESSION_SLUG}:${slug}`;
-}
-
-const STORAGE_NOTIFY_EVENT = "devsync-local-storage";
-
 function readStoredUserId(slug: string): Id<"users"> | null {
   try {
-    const raw = localStorage.getItem(storageKeyForSlug(slug));
+    const raw = localStorage.getItem(evaluatorUserIdStorageKey(slug));
     return raw ? (raw as Id<"users">) : null;
   } catch {
     return null;
@@ -26,7 +25,7 @@ function readStoredUserId(slug: string): Id<"users"> | null {
 
 function notifyLocalStorageListeners() {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event(STORAGE_NOTIFY_EVENT));
+  window.dispatchEvent(new Event(DEVSYNC_STORAGE_NOTIFY_EVENT));
 }
 
 function useStoredConvexUserId(slug: string): Id<"users"> | null {
@@ -34,8 +33,9 @@ function useStoredConvexUserId(slug: string): Id<"users"> | null {
     (onChange) => {
       if (typeof window === "undefined") return () => {};
       const handler = () => onChange();
-      window.addEventListener(STORAGE_NOTIFY_EVENT, handler);
-      return () => window.removeEventListener(STORAGE_NOTIFY_EVENT, handler);
+      window.addEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, handler);
+      return () =>
+        window.removeEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, handler);
     },
     () => readStoredUserId(slug),
     () => null,
@@ -76,6 +76,17 @@ export function EvalJoinClient({ slug }: Props) {
       ? roster.find((u: Doc<"users">) => u._id === savedId) ?? null
       : null;
 
+  /** Backfill + refresh “last matrix slug” for `/room/*` sidebar when already signed in. */
+  useEffect(() => {
+    if (!me || typeof window === "undefined") return;
+    try {
+      localStorage.setItem(LAST_EVAL_SLUG_STORAGE_KEY, slug);
+      notifyLocalStorageListeners();
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [me, slug]);
+
   const onJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -98,7 +109,8 @@ export function EvalJoinClient({ slug }: Props) {
         name: trimmed,
         role: existingProfile?.role ?? "evaluator",
       });
-      localStorage.setItem(storageKeyForSlug(slug), userId);
+      localStorage.setItem(evaluatorUserIdStorageKey(slug), userId);
+      localStorage.setItem(LAST_EVAL_SLUG_STORAGE_KEY, slug);
       notifyLocalStorageListeners();
       setName(trimmed);
       setNameDirty(true);
