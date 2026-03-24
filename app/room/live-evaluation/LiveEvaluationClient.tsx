@@ -1,13 +1,11 @@
 "use client";
 
+import { SkillBlock } from "@/components/eval/SkillBlock";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
-import {
-  competencyCheckpointDisplayRows,
-  competencyToCheckpoints,
-} from "@/lib/skill-checkpoints";
+import { competencyToCheckpoints } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -950,7 +948,6 @@ function PeerRationaleModal({
   }, [onClose]);
 
   const comp = MATRIX_COMPETENCIES.find((c) => c.id === skillId);
-  const displayRows = comp ? competencyCheckpointDisplayRows(comp) : [];
 
   return (
     <div
@@ -961,7 +958,7 @@ function PeerRationaleModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-primary/20 bg-surface-container-high shadow-2xl"
+        className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-primary/20 bg-surface-container-high shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
@@ -975,10 +972,10 @@ function PeerRationaleModal({
                 id="peer-rationale-title"
                 className="text-base font-bold uppercase text-on-surface"
               >
-                {evaluatorName}&apos;s rationale
+                {evaluatorName}
               </h4>
               <span className="text-[10px] uppercase tracking-widest text-on-surface-variant">
-                Skill: {skillName}
+                Peer matrix (read-only) · {skillName}
               </span>
             </div>
           </div>
@@ -991,61 +988,24 @@ function PeerRationaleModal({
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-        <div className="max-h-[calc(90vh-10rem)] overflow-y-auto p-6 md:p-8">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <div className="space-y-6">
-              <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                Checklist data
-              </h5>
-              {row && displayRows.length > 0 ? (
-                <ul className="space-y-3">
-                  {displayRows.map((dr) => {
-                    const on = !!row.checkpoints[dr.id];
-                    return (
-                      <li key={dr.id} className="flex items-center gap-3">
-                        <span
-                          className={`material-symbols-outlined text-sm ${on ? "text-primary" : "text-outline-variant/40"}`}
-                          style={
-                            on
-                              ? {
-                                  fontVariationSettings:
-                                    '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24',
-                                }
-                              : undefined
-                          }
-                        >
-                          {on ? "check_circle" : "radio_button_unchecked"}
-                        </span>
-                        <span
-                          className={`text-xs ${on ? "text-on-surface" : "text-on-surface-variant"}`}
-                        >
-                          {dr.text}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="text-xs text-on-surface-variant">
-                  No checklist row loaded for this evaluator.
-                </p>
-              )}
-            </div>
-            <div className="space-y-6">
-              <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                Qualitative feedback
-              </h5>
-              {row?.rationale ? (
-                <p className="text-sm italic leading-relaxed text-on-surface-variant">
-                  &ldquo;{row.rationale}&rdquo;
-                </p>
-              ) : (
-                <p className="text-sm text-on-surface-variant">
-                  No written rationale for this reveal.
-                </p>
-              )}
-            </div>
-          </div>
+        <div className="max-h-[calc(90vh-10rem)] overflow-y-auto p-4 md:p-6">
+          {comp ? (
+            <SkillBlock
+              key={row?._id ?? "no-row"}
+              competency={comp}
+              row={row}
+              readOnly
+              revealHighlight={false}
+              dimForReveal={false}
+              layout="embedded"
+              onSetCheckpoints={() => {}}
+              onSaveMeta={() => {}}
+            />
+          ) : (
+            <p className="text-sm text-on-surface-variant">
+              Unknown skill — cannot render matrix.
+            </p>
+          )}
         </div>
         <div className="flex justify-end gap-3 bg-surface-container px-6 py-4">
           <button
@@ -1083,7 +1043,6 @@ function MatrixDetailModal({
   }, [onClose]);
 
   const comp = MATRIX_COMPETENCIES.find((c) => c.id === cell.skillId);
-  const displayRows = comp ? competencyCheckpointDisplayRows(comp) : [];
   const peers = evaluations.filter(
     (r) =>
       r.subjectId === cell.subjectId &&
@@ -1100,7 +1059,7 @@ function MatrixDetailModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-primary/25 bg-surface-container-high shadow-2xl"
+        className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-primary/25 bg-surface-container-high shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
@@ -1130,70 +1089,40 @@ function MatrixDetailModal({
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-        <div className="max-h-[calc(90vh-8rem)] overflow-y-auto p-5">
-          <ul className="space-y-6">
-            {peers.map((row) => {
-              const uiEst = evalUiEstimate(cell.skillId, row.checkpoints);
-              return (
-                <li
-                  key={row._id}
-                  className="rounded-xl border border-outline-variant/20 bg-surface-container p-4"
-                >
-                  <p className="text-sm font-bold text-on-surface">
-                    {nameByUserId.get(row.evaluatorId) ?? row.evaluatorId}
-                  </p>
-                  <p className="mt-1 text-xs text-on-surface-variant">
-                    Manual: {row.manualMark ?? "—"} · UI estimate:{" "}
-                    <span className={UI_ESTIMATE_CLASS}>{uiEst.toFixed(2)}</span>
-                  </p>
-                  {row.rationale ? (
-                    <p className="mt-2 text-sm italic text-on-surface-variant">
-                      {row.rationale}
-                    </p>
-                  ) : null}
-                  {displayRows.length > 0 ? (
-                    <ul className="mt-3 space-y-1.5 border-t border-outline-variant/15 pt-3">
-                      {displayRows.map((dr) => {
-                        const on = !!row.checkpoints[dr.id];
-                        return (
-                          <li
-                            key={dr.id}
-                            className={`flex items-start gap-2 text-xs ${
-                              dr.nested ? "pl-4 text-on-surface-variant" : ""
-                            }`}
-                          >
-                            <span
-                              className={`material-symbols-outlined shrink-0 text-sm ${
-                                on ? "text-primary" : "text-outline-variant/50"
-                              }`}
-                              style={
-                                on
-                                  ? {
-                                      fontVariationSettings:
-                                        '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24',
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {on ? "check_circle" : "radio_button_unchecked"}
-                            </span>
-                            <span className={on ? "text-on-surface" : ""}>
-                              {dr.text}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-          {peers.length === 0 ? (
+        <div className="max-h-[calc(90vh-8rem)] overflow-y-auto p-4 md:p-5">
+          {!comp ? (
+            <p className="text-sm text-on-surface-variant">
+              Unknown skill — cannot render matrix.
+            </p>
+          ) : peers.length === 0 ? (
             <p className="text-sm text-on-surface-variant">
               No peer evaluation rows for this cell yet.
             </p>
-          ) : null}
+          ) : (
+            <ul className="space-y-8">
+              {peers.map((peerRow) => (
+                <li key={peerRow._id} className="space-y-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-primary">
+                    {nameByUserId.get(peerRow.evaluatorId) ??
+                      String(peerRow.evaluatorId)}
+                    <span className="ml-2 font-normal normal-case tracking-normal text-on-surface-variant">
+                      · read-only peer view
+                    </span>
+                  </p>
+                  <SkillBlock
+                    competency={comp}
+                    row={peerRow}
+                    readOnly
+                    revealHighlight={false}
+                    dimForReveal={false}
+                    layout="embedded"
+                    onSetCheckpoints={() => {}}
+                    onSaveMeta={() => {}}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex justify-end border-t border-outline-variant/15 bg-surface-container px-5 py-3">
           <button
