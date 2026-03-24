@@ -11,7 +11,7 @@ export type FoundationFirstResult = {
   /** Checkpoints with level > baseLevel that are checked. */
   spikeCount: number;
   uiEstimate: number;
-  /** Levels > baseLevel with at least one checked checkpoint (out-of-sequence strength). */
+  /** Levels more than one rung above base with at least one checked checkpoint (skipped intermediate). */
   prematurePeakLevels: SkillLevelNumber[];
 };
 
@@ -56,7 +56,10 @@ export function computeFoundationFirstUiEstimate(
   for (const cp of checkpoints) {
     if (cp.level > baseLevel && checked.has(cp.id)) {
       spikeCount += 1;
-      premature.add(cp.level);
+      // Next rung (base+1) may be partially met — that is normal progress, not a "peak".
+      if (cp.level > baseLevel + 1) {
+        premature.add(cp.level);
+      }
     }
   }
 

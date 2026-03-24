@@ -77,3 +77,42 @@ export function competencyCheckpointDisplayRows(
   }
   return rows;
 }
+
+/** Parent row plus following nested rows (same level), aligned with checkpoint ID order. */
+export type CheckpointDisplayGroup = {
+  parent: CheckpointDisplayRow;
+  nested: CheckpointDisplayRow[];
+};
+
+export function groupCheckpointDisplayRows(
+  rows: readonly CheckpointDisplayRow[],
+): CheckpointDisplayGroup[] {
+  const groups: CheckpointDisplayGroup[] = [];
+  for (const r of rows) {
+    if (!r.nested) {
+      groups.push({ parent: r, nested: [] });
+    } else {
+      const last = groups[groups.length - 1];
+      if (last) last.nested.push(r);
+    }
+  }
+  return groups;
+}
+
+/**
+ * For each parent with subcriteria: parent counts as checked iff every nested row is checked.
+ * Used so scoring matches nested-first semantics even if legacy rows only toggled children.
+ */
+export function applyParentNestedCheckpointConsistency(
+  checked: ReadonlySet<string>,
+  groups: readonly CheckpointDisplayGroup[],
+): Set<string> {
+  const s = new Set(checked);
+  for (const g of groups) {
+    if (g.nested.length === 0) continue;
+    const allNested = g.nested.every((n) => s.has(n.id));
+    if (allNested) s.add(g.parent.id);
+    else s.delete(g.parent.id);
+  }
+  return s;
+}

@@ -70,4 +70,4 @@
 | **UI estimate** | Score computed from checkboxes (foundation + spikes) |
 | **Evaluator mark** | Manual 1–5 from evaluator |
 | **Manager final mark** | Post-calibration authoritative score |
-| **Premature peak / out-of-sequence strength** | High-level criteria met while foundation incomplete |
+| **Premature peak / out-of-sequence strength** | Criteria met **two+ rungs** above the fully met base while a rung in between is incomplete (immediate next rung may be partial without flag) |

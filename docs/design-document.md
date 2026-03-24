@@ -82,7 +82,7 @@ Use the project’s actual step size if it differs from `0.1`; the doc encodes t
 **Spike:** Checkpoints above base: e.g. **2** in L2 + **4** in L4 → **S = 6 × 0.1 = 0.6**  
 **UI estimate:** **1.6** (before manager calibration)
 
-**UI flag:** Level 4 (and similar) met criteria while lower rungs are incomplete → show as **“Premature peaks”** / **“Out-of-sequence strengths.”**
+**UI flag:** Criteria **two or more rungs** above the highest fully met level are checked while an intermediate rung is still incomplete (e.g. L1 full, L2 partial, L4 met) → show as **“Premature peaks”** / **“Out-of-sequence strengths.”** The rung immediately above the base (e.g. partial L2 after full L1) is **not** flagged — that is expected ladder progress.
 
 ---
 

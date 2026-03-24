@@ -4,8 +4,11 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import {
+  applyParentNestedCheckpointConsistency,
   competencyCheckpointDisplayRows,
   competencyToCheckpoints,
+  groupCheckpointDisplayRows,
+  type CheckpointDisplayGroup,
 } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import type { SkillCompetency } from "@/lib/skill-rubric-common";
@@ -52,16 +55,15 @@ function SkillBlock({
   competency,
   row,
   readOnly,
-  onToggleCheckpoint,
+  onSetCheckpoints,
   onSaveMeta,
 }: {
   competency: SkillCompetency;
   row: Doc<"evaluations"> | undefined;
   readOnly: boolean;
-  onToggleCheckpoint: (
+  onSetCheckpoints: (
     skillId: string,
-    checkpointId: string,
-    next: boolean,
+    updates: Record<string, boolean>,
   ) => void;
   onSaveMeta: (
     skillId: string,
@@ -78,6 +80,11 @@ function SkillBlock({
     [competency],
   );
 
+  const groupsAll = useMemo(
+    () => groupCheckpointDisplayRows(displayRows),
+    [displayRows],
+  );
+
   const checked = useMemo(() => {
     const map = row?.checkpoints ?? {};
     const s = new Set<string>();
@@ -87,20 +94,26 @@ function SkillBlock({
     return s;
   }, [row?.checkpoints]);
 
-  const score = useMemo(
-    () => computeFoundationFirstUiEstimate(checkpoints, checked),
-    [checkpoints, checked],
+  const effectiveChecked = useMemo(
+    () => applyParentNestedCheckpointConsistency(checked, groupsAll),
+    [checked, groupsAll],
   );
 
-  const byLevel = useMemo(() => {
-    const m = new Map<number, typeof displayRows>();
-    for (const r of displayRows) {
-      const list = m.get(r.level) ?? [];
-      list.push(r);
-      m.set(r.level, list);
+  const score = useMemo(
+    () => computeFoundationFirstUiEstimate(checkpoints, effectiveChecked),
+    [checkpoints, effectiveChecked],
+  );
+
+  const groupsByLevel = useMemo(() => {
+    const m = new Map<number, CheckpointDisplayGroup[]>();
+    for (const g of groupsAll) {
+      const L = g.parent.level;
+      const list = m.get(L) ?? [];
+      list.push(g);
+      m.set(L, list);
     }
     return m;
-  }, [displayRows]);
+  }, [groupsAll]);
 
   const [manualDraft, setManualDraft] = useState(
     () => row?.manualMark?.toString() ?? "",
@@ -186,15 +199,16 @@ function SkillBlock({
       {score.prematurePeakLevels.length > 0 ? (
         <div className="border-b border-warning-muted bg-warning/10 px-4 py-2.5 text-xs text-on-surface">
           <span className="font-semibold text-warning">Premature peaks: </span>
-          Criteria above your foundation rung are checked (levels{" "}
-          {score.prematurePeakLevels.join(", ")}). Calibration may be needed at
+          Criteria two or more rungs above your fully met level are checked
+          (levels {score.prematurePeakLevels.join(", ")}). The next rung may
+          still be partial — that is normal. Calibration may be needed at
           reveal.
         </div>
       ) : null}
 
       <div className="grid gap-1 bg-surface-container-lowest p-1 sm:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4, 5].map((level) => {
-          const rowsAt = byLevel.get(level) ?? [];
+          const groupsAt = groupsByLevel.get(level) ?? [];
           const rub = competency.levels.find((l) => l.number === level);
           const emphasize = score.baseLevel === level;
           return (
@@ -214,50 +228,134 @@ function SkillBlock({
                 {rub ? rub.label : `L${level}`}
               </p>
               <div className="space-y-2">
-                {rowsAt.map((dr) => {
-                  const isOn = checked.has(dr.id);
+                {groupsAt.map((group) => {
+                  const hasNested = group.nested.length > 0;
+                  const parentOn = hasNested
+                    ? group.nested.every((n) => checked.has(n.id))
+                    : checked.has(group.parent.id);
+                  const anyNestedOn =
+                    hasNested &&
+                    group.nested.some((n) => checked.has(n.id));
+                  const cardClass =
+                    parentOn
+                      ? "border-primary/35 bg-primary/[0.06]"
+                      : anyNestedOn
+                        ? "border-outline-variant/25 bg-surface-container-high/40"
+                        : "border-outline-variant/10 bg-surface-container";
+
+                  const toggleParent = () => {
+                    if (readOnly) return;
+                    if (hasNested) {
+                      const target = !parentOn;
+                      const updates: Record<string, boolean> = {
+                        [group.parent.id]: target,
+                      };
+                      for (const n of group.nested) updates[n.id] = target;
+                      onSetCheckpoints(competency.id, updates);
+                    } else {
+                      onSetCheckpoints(competency.id, {
+                        [group.parent.id]: !checked.has(group.parent.id),
+                      });
+                    }
+                  };
+
+                  const toggleNested = (nestedId: string, next: boolean) => {
+                    const nestedIds = group.nested.map((n) => n.id);
+                    const temp = new Set(checked);
+                    if (next) temp.add(nestedId);
+                    else temp.delete(nestedId);
+                    const parentShould = nestedIds.every((id) =>
+                      temp.has(id),
+                    );
+                    onSetCheckpoints(competency.id, {
+                      [nestedId]: next,
+                      [group.parent.id]: parentShould,
+                    });
+                  };
+
                   return (
-                    <label
-                      key={dr.id}
-                      className={`flex cursor-pointer select-none flex-col gap-1 rounded border p-3 text-left text-[11px] transition-all ${
-                        isOn
-                          ? "border-primary/40 bg-primary/5"
-                          : "border-outline-variant/10 hover:bg-surface-variant"
-                      } ${readOnly ? "pointer-events-none opacity-60" : ""}`}
+                    <div
+                      key={group.parent.id}
+                      className={`overflow-hidden rounded-lg border transition-colors ${cardClass}`}
                     >
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={isOn}
-                          disabled={readOnly}
-                          onChange={() =>
-                            onToggleCheckpoint(competency.id, dr.id, !isOn)
-                          }
-                        />
-                        <span
-                          className={`material-symbols-outlined shrink-0 text-[16px] ${
-                            isOn
-                              ? "fill-on text-primary"
-                              : "text-on-surface-variant"
-                          }`}
-                        >
-                          {isOn ? "check_circle" : "circle"}
-                        </span>
-                        <span
-                          className={
-                            dr.nested
-                              ? "leading-tight text-on-surface-variant"
-                              : "font-bold leading-tight text-on-surface"
-                          }
-                        >
-                          {dr.text}
-                        </span>
-                      </div>
-                    </label>
+                      <label
+                        className={`flex cursor-pointer select-none flex-col gap-1 px-3 py-3 text-left text-[11px] transition-colors ${
+                          readOnly
+                            ? "pointer-events-none opacity-60"
+                            : "hover:bg-surface-variant/30"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={parentOn}
+                            disabled={readOnly}
+                            onChange={toggleParent}
+                          />
+                          <span
+                            className={`material-symbols-outlined shrink-0 text-[16px] ${
+                              parentOn
+                                ? "fill-on text-primary"
+                                : "text-on-surface-variant"
+                            }`}
+                          >
+                            {parentOn ? "check_circle" : "circle"}
+                          </span>
+                          <span className="font-bold leading-tight text-on-surface">
+                            {group.parent.text}
+                          </span>
+                        </div>
+                      </label>
+                      {hasNested ? (
+                        <div className="border-t border-outline-variant/10 bg-surface-container-lowest/90 px-2 pb-2 pt-1">
+                          <div className="ml-2 space-y-0.5">
+                            {group.nested.map((n) => {
+                              const nOn = checked.has(n.id);
+                              return (
+                                <label
+                                  key={n.id}
+                                  className={`flex cursor-pointer select-none items-start gap-2 rounded-md py-1.5 pl-1 pr-1 text-left text-[10px] leading-snug transition-colors ${
+                                    nOn
+                                      ? "bg-primary/[0.07]"
+                                      : "hover:bg-surface-variant/25"
+                                  } ${
+                                    readOnly
+                                      ? "pointer-events-none opacity-60"
+                                      : ""
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={nOn}
+                                    disabled={readOnly}
+                                    onChange={() =>
+                                      toggleNested(n.id, !nOn)
+                                    }
+                                  />
+                                  <span
+                                    className={`material-symbols-outlined mt-0.5 shrink-0 text-[14px] ${
+                                      nOn
+                                        ? "fill-on text-primary"
+                                        : "text-on-surface-variant"
+                                    }`}
+                                  >
+                                    {nOn ? "check_circle" : "circle"}
+                                  </span>
+                                  <span className="text-on-surface-variant">
+                                    {n.text}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
-                {rowsAt.length === 0 ? (
+                {groupsAt.length === 0 ? (
                   <p className="text-center text-[10px] text-on-surface-variant/60">
                     —
                   </p>
@@ -396,8 +494,8 @@ export function EvaluatorMatrix({
 
   const readOnly = phase === "finished";
 
-  const onToggleCheckpoint = useCallback(
-    async (skillId: string, checkpointId: string, next: boolean) => {
+  const onSetCheckpoints = useCallback(
+    async (skillId: string, updates: Record<string, boolean>) => {
       if (!effectiveSubject || readOnly) return;
       try {
         await updateCheckboxes({
@@ -405,19 +503,13 @@ export function EvaluatorMatrix({
           evaluatorId: myUserId,
           subjectId: effectiveSubject,
           skillId,
-          checkpoints: { [checkpointId]: next },
+          checkpoints: updates,
         });
       } catch {
         /* Convex retries / toast later */
       }
     },
-    [
-      effectiveSubject,
-      readOnly,
-      updateCheckboxes,
-      sessionId,
-      myUserId,
-    ],
+    [effectiveSubject, readOnly, updateCheckboxes, sessionId, myUserId],
   );
 
   const onSaveMeta = useCallback(
@@ -514,7 +606,7 @@ export function EvaluatorMatrix({
               competency={comp}
               row={evaluationFor(myRows, effectiveSubject!, comp.id)}
               readOnly={readOnly}
-              onToggleCheckpoint={onToggleCheckpoint}
+              onSetCheckpoints={onSetCheckpoints}
               onSaveMeta={onSaveMeta}
             />
           ))}

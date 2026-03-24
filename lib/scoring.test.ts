@@ -37,7 +37,20 @@ describe("computeFoundationFirstUiEstimate", () => {
     expect(r.baseNumeric).toBe(1);
     expect(r.spikeCount).toBe(6);
     expect(r.uiEstimate).toBeCloseTo(1.6, 5);
-    expect(r.prematurePeakLevels).toEqual([2, 4]);
+    expect(r.prematurePeakLevels).toEqual([4]);
+  });
+
+  it("does not flag the rung immediately above base as premature (L1 full, L2 partial only)", () => {
+    const checkpoints: SkillCheckpoint[] = [
+      { id: "l1a", level: 1 },
+      { id: "l1b", level: 1 },
+      { id: "l2a", level: 2 },
+      { id: "l2b", level: 2 },
+    ];
+    const checked = new Set(["l1a", "l1b", "l2a"]);
+    const r = computeFoundationFirstUiEstimate(checkpoints, checked);
+    expect(r.baseLevel).toBe(1);
+    expect(r.prematurePeakLevels).toEqual([]);
   });
 
   it("returns base 0 when level 1 is incomplete", () => {
