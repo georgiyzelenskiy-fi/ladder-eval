@@ -2,6 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
+import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import {
   BURGER_ROSTER,
   BURGER_TEAM_TITLE,
@@ -46,6 +47,7 @@ export function DriverClient() {
   const { session, bootError } = useBootstrapSession();
   const setPhase = useMutation(api.session.setSessionPhase);
   const pickNext = useMutation(api.session.pickNextEvaluator);
+  const setRevealSkill = useMutation(api.session.setActiveRevealSkill);
   const submitVerdict = useMutation(api.session.submitVerdict);
   const seedRoster = useMutation(api.users.seedRoster);
 
@@ -224,6 +226,122 @@ export function DriverClient() {
           </p>
         )}
       </section>
+
+      {session.phase === "live" ? (
+        <section className="flex flex-col gap-3 rounded-xl border border-violet-300/60 bg-violet-50/40 px-4 py-4 dark:border-violet-500/35 dark:bg-violet-950/25">
+          <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            Live reveal — competency focus
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Evaluators see the focused skill highlighted (others dimmed). Use
+            prev/next to walk the matrix in order, pick a skill directly, or
+            clear to show the full matrix at equal weight.
+          </p>
+          <p className="text-sm text-zinc-800 dark:text-zinc-200">
+            <span className="font-medium">Current:</span>{" "}
+            {session.activeRevealSkillId
+              ? (MATRIX_COMPETENCIES.find(
+                  (c) => c.id === session.activeRevealSkillId,
+                )?.name ?? session.activeRevealSkillId)
+              : "None — full matrix visible"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => {
+                const order = MATRIX_COMPETENCIES.map((c) => c.id);
+                const cur = session.activeRevealSkillId;
+                const idx = cur ? order.indexOf(cur) : -1;
+                const nextIdx =
+                  idx <= 0 ? order.length - 1 : idx - 1;
+                const nextId = order[nextIdx];
+                if (nextId) {
+                  run("reveal-prev", () =>
+                    setRevealSkill({
+                      sessionId: session._id,
+                      skillId: nextId,
+                    }),
+                  );
+                }
+              }}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+              {busy === "reveal-prev" ? "…" : "Previous skill"}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => {
+                const order = MATRIX_COMPETENCIES.map((c) => c.id);
+                const cur = session.activeRevealSkillId;
+                const idx = cur ? order.indexOf(cur) : -1;
+                const nextIdx =
+                  idx < 0 || idx >= order.length - 1 ? 0 : idx + 1;
+                const nextId = order[nextIdx];
+                if (nextId) {
+                  run("reveal-next", () =>
+                    setRevealSkill({
+                      sessionId: session._id,
+                      skillId: nextId,
+                    }),
+                  );
+                }
+              }}
+              className="rounded-lg bg-violet-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-violet-600"
+            >
+              {busy === "reveal-next" ? "…" : "Next skill"}
+            </button>
+            <button
+              type="button"
+              disabled={busy !== null || !session.activeRevealSkillId}
+              onClick={() =>
+                run("reveal-clear", () =>
+                  setRevealSkill({
+                    sessionId: session._id,
+                    skillId: null,
+                  }),
+                )
+              }
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+              {busy === "reveal-clear" ? "…" : "Clear focus"}
+            </button>
+          </div>
+          <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-zinc-200 bg-white/80 p-2 dark:border-zinc-700 dark:bg-zinc-950/50">
+            <p className="px-1 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Jump to
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {MATRIX_COMPETENCIES.map((c) => {
+                const active = session.activeRevealSkillId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      run("reveal-jump", () =>
+                        setRevealSkill({
+                          sessionId: session._id,
+                          skillId: c.id,
+                        }),
+                      )
+                    }
+                    className={`rounded-md px-2 py-1 text-left text-xs font-medium ${
+                      active
+                        ? "bg-violet-600 text-white dark:bg-violet-500"
+                        : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                    } disabled:opacity-40`}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">

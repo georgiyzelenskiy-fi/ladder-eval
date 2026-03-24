@@ -54,6 +54,20 @@ export const pickNextEvaluator = mutation({
   },
 });
 
+/** Manager: which competency row is “in focus” during live reveal (sequential calibration). */
+export const setActiveRevealSkill = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    /** Pass `null` to clear focus. */
+    skillId: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, { sessionId, skillId }) => {
+    await ctx.db.patch(sessionId, {
+      activeRevealSkillId: skillId === null ? undefined : skillId,
+    });
+  },
+});
+
 export const submitVerdict = mutation({
   args: {
     sessionId: v.id("sessions"),

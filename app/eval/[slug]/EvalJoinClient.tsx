@@ -165,6 +165,7 @@ export function EvalJoinClient({ slug }: Props) {
               <EvaluatorMatrix
                 sessionId={sessionId}
                 phase={session.phase}
+                activeRevealSkillId={session.activeRevealSkillId}
                 myUserId={me._id}
                 roster={roster}
               />

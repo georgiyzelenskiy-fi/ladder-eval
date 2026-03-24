@@ -13,13 +13,15 @@ import {
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import type { SkillCompetency } from "@/lib/skill-rubric-common";
 import { useMutation, useQuery } from "convex/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type SessionPhase = "preparation" | "live" | "finished";
 
 type Props = {
   sessionId: Id<"sessions">;
   phase: SessionPhase;
+  /** During live phase, manager-driven “current” competency for sequential reveal. */
+  activeRevealSkillId?: string | undefined;
   myUserId: Id<"users">;
   roster: Doc<"users">[];
 };
@@ -55,12 +57,16 @@ function SkillBlock({
   competency,
   row,
   readOnly,
+  revealHighlight,
+  dimForReveal,
   onSetCheckpoints,
   onSaveMeta,
 }: {
   competency: SkillCompetency;
   row: Doc<"evaluations"> | undefined;
   readOnly: boolean;
+  revealHighlight: boolean;
+  dimForReveal: boolean;
   onSetCheckpoints: (
     skillId: string,
     updates: Record<string, boolean>,
@@ -123,9 +129,27 @@ function SkillBlock({
   );
 
   const icon = competencyIcon(competency.id);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!revealHighlight || !sectionRef.current) return;
+    sectionRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [revealHighlight]);
+
+  const revealShell =
+    revealHighlight
+      ? "ring-2 ring-primary/50 ring-offset-2 ring-offset-surface-container-low"
+      : "";
+  const revealDim = dimForReveal && !revealHighlight ? "opacity-45" : "";
 
   return (
-    <section className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low shadow-[0_16px_40px_-16px_rgba(0,0,0,0.45)]">
+    <section
+      ref={sectionRef}
+      className={`scroll-mt-24 overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low shadow-[0_16px_40px_-16px_rgba(0,0,0,0.45)] transition-opacity duration-300 ${revealShell} ${revealDim}`}
+    >
       <div className="flex flex-col gap-4 border-b border-outline-variant/20 bg-surface-container-high px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-primary/20 bg-surface-container">
@@ -471,6 +495,7 @@ function MatrixWorkspaceHero() {
 export function EvaluatorMatrix({
   sessionId,
   phase,
+  activeRevealSkillId,
   myUserId,
   roster,
 }: Props) {
@@ -493,6 +518,19 @@ export function EvaluatorMatrix({
       : subjects[0]?._id ?? null;
 
   const readOnly = phase === "finished";
+
+  const revealFocusActive = useMemo(() => {
+    if (phase !== "live" || !activeRevealSkillId) return false;
+    return MATRIX_COMPETENCIES.some((c) => c.id === activeRevealSkillId);
+  }, [phase, activeRevealSkillId]);
+
+  const focusedCompetency = useMemo(
+    () =>
+      revealFocusActive && activeRevealSkillId
+        ? MATRIX_COMPETENCIES.find((c) => c.id === activeRevealSkillId)
+        : undefined,
+    [revealFocusActive, activeRevealSkillId],
+  );
 
   const onSetCheckpoints = useCallback(
     async (skillId: string, updates: Record<string, boolean>) => {
@@ -571,6 +609,14 @@ export function EvaluatorMatrix({
         {phaseBanner.text}
       </div>
 
+      {focusedCompetency ? (
+        <div className="rounded-lg border border-primary/35 bg-primary/8 px-4 py-3 text-sm text-on-surface">
+          <span className="font-semibold text-primary">Live focus — </span>
+          {focusedCompetency.name}. Other competencies are de-emphasized until
+          the manager advances reveal.
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <label className="flex w-full max-w-md flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
           Subject
@@ -606,6 +652,10 @@ export function EvaluatorMatrix({
               competency={comp}
               row={evaluationFor(myRows, effectiveSubject!, comp.id)}
               readOnly={readOnly}
+              revealHighlight={
+                revealFocusActive && activeRevealSkillId === comp.id
+              }
+              dimForReveal={revealFocusActive}
               onSetCheckpoints={onSetCheckpoints}
               onSaveMeta={onSaveMeta}
             />

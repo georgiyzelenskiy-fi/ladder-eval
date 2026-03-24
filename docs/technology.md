@@ -39,6 +39,7 @@ Modules: `convex/session.ts`, `convex/users.ts`, `convex/evaluations.ts` (paths 
 * **`session.setSessionPhase`**: Manager FSM: `preparation` → `live` → `finished`.
 * **`users.joinSession`**: Assigns or updates `name` / `role` for a slug in a session.
 * **`session.pickNextEvaluator`**: (Manager) Sets `sessions.activeEvaluatorId`.
+* **`session.setActiveRevealSkill`**: (Manager, live phase) Sets or clears `sessions.activeRevealSkillId` for sequential competency reveal; evaluators highlight that matrix block.
 * **`evaluations.updateCheckboxes`**: Merges checkpoint toggles; optional `manualMark` and `rationale` (design doc §6.1).
 * **`session.submitVerdict`**: (Manager) Saves verdict and sets phase `finished`.
 
