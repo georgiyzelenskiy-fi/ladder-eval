@@ -7,6 +7,7 @@ import {
   evaluatorUserIdStorageKey,
   lastEvalSlugStorageKey,
 } from "@/lib/devsync-constants";
+import { persistLastVisitedSessionSlug } from "@/lib/devsync-browser";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -95,6 +96,12 @@ export function EvalJoinClient({ slug, sessionSlug }: Props) {
       /* ignore quota / private mode */
     }
   }, [me, slug, sessionSlug]);
+
+  /** Remember round slug for room links when `?session=` is omitted on a later visit. */
+  useEffect(() => {
+    if (!me) return;
+    persistLastVisitedSessionSlug(sessionSlug);
+  }, [me, sessionSlug]);
 
   const onJoin = async (e: React.FormEvent) => {
     e.preventDefault();

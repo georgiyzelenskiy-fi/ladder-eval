@@ -1,4 +1,4 @@
-import { EvalWorkspaceShell } from "@/components/eval/EvalWorkspaceShell";
+import { EvalRouteWorkspaceShell } from "@/components/eval/EvalRouteWorkspaceShell";
 import { Inter } from "next/font/google";
 import "../eval-workspace.css";
 import type { ReactNode } from "react";
@@ -19,7 +19,7 @@ export default async function EvalSlugLayout({
 
   return (
     <div className={`${inter.variable}`}>
-      <EvalWorkspaceShell slug={slug}>{children}</EvalWorkspaceShell>
+      <EvalRouteWorkspaceShell slug={slug}>{children}</EvalRouteWorkspaceShell>
     </div>
   );
 }

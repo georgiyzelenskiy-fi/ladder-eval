@@ -1,9 +1,9 @@
 "use client";
 
-import { parseSessionSlugParam } from "@/lib/session-slug-param";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { EvalWorkspaceShell } from "./EvalWorkspaceShell";
+import { useRoomLinkSessionSlug } from "./useRoomLinkSessionSlug";
 
 /**
  * Shared chrome for `/room/*` routes (control room, live calibration).
@@ -11,8 +11,7 @@ import { EvalWorkspaceShell } from "./EvalWorkspaceShell";
  */
 export function RoomWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const roomSessionSlug = parseSessionSlugParam(searchParams.get("session"));
+  const roomSessionSlug = useRoomLinkSessionSlug();
 
   const headerTitle = pathname.startsWith("/room/live-evaluation")
     ? "Live group calibration"

@@ -29,3 +29,7 @@ export const LAST_EVAL_SLUG_STORAGE_KEY =
  */
 export const MANAGER_ACCESS_KEY_STORAGE_KEY =
   `devsync-manager-access-key:${DEFAULT_SESSION_SLUG}` as const;
+
+/** Last non-`default` session slug visited on `/eval/*` — scopes `/room/*` links when `?session=` is omitted. */
+export const LAST_VISITED_SESSION_SLUG_STORAGE_KEY =
+  "devsync-last-visited-session-slug" as const;

@@ -54,8 +54,9 @@ export const getSession = query({
 
 /**
  * Idempotent bootstrap: get or create a session by slug.
- * When `MANAGER_ACCESS_KEY` is set, non-`default` slugs require `managerKey` so evaluators
- * can still auto-create the canonical `default` room without the secret.
+ * When `MANAGER_ACCESS_KEY` is set, **creating** a missing non-`default` session requires
+ * `managerKey`. Existing sessions return without a key so evaluators can open `/room/*` and
+ * live-eval view-only. The canonical `default` room can still be auto-created without the secret.
  */
 export const ensureSession = mutation({
   args: {
@@ -64,15 +65,16 @@ export const ensureSession = mutation({
   },
   handler: async (ctx, { slug = "default", managerKey }) => {
     const normalized = normalizeSessionSlug(slug);
-    const gate = process.env.MANAGER_ACCESS_KEY;
-    if (gate != null && gate !== "" && normalized !== "default") {
-      assertManagerKey(managerKey);
-    }
     const existing = await ctx.db
       .query("sessions")
       .withIndex("by_slug", (q) => q.eq("slug", normalized))
       .unique();
     if (existing) return existing._id;
+
+    const gate = process.env.MANAGER_ACCESS_KEY;
+    if (gate != null && gate !== "" && normalized !== "default") {
+      assertManagerKey(managerKey);
+    }
     return await ctx.db.insert("sessions", {
       slug: normalized,
       phase: "preparation",

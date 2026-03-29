@@ -59,6 +59,8 @@ const MANAGE_PATH = "/manage";
 type EvalVariantProps = {
   variant?: "eval";
   slug: string;
+  /** Scopes `/room/*` nav links and `lastEvalSlugStorageKey` (same as `?session=` on `/eval/*`). */
+  sessionSlug: string;
   children: ReactNode;
   contentWrapperClassName?: string;
 };
@@ -81,7 +83,9 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const storedManagerKey = useStoredManagerAccessKey();
   const isRoom = props.variant === "room";
   const roomSessionSlug =
-    props.variant === "room" ? props.roomSessionSlug : "default";
+    props.variant === "room"
+      ? props.roomSessionSlug
+      : props.sessionSlug;
   const liveCalHref = useMemo(
     () => buildRoomHref(LIVE_CAL_PATH, roomSessionSlug, storedManagerKey),
     [roomSessionSlug, storedManagerKey],
