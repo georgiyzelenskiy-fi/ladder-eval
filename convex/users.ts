@@ -65,8 +65,8 @@ export const joinSession = mutation({
 });
 
 /**
- * Idempotent: upsert each (session, slug); optional session title for the control room.
- * Use from the manager UI with a preset from `lib/roster-presets/*`.
+ * Idempotent: upsert each (session, slug); optional session title.
+ * Use from the manager Team setup UI (bulk import) when needed.
  */
 export const seedRoster = mutation({
   args: {

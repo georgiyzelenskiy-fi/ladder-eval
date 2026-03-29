@@ -541,8 +541,8 @@ export function LiveEvaluationClient({
 
           {!liveSubjectId ? (
             <p className="text-sm text-on-surface-variant">
-              Seed a roster in the control room, then pick a subject to start the
-              reveal queue.
+              Add evaluators in Team setup, then pick a subject to start the reveal
+              queue.
             </p>
           ) : (
             <div className="grid grid-cols-12 gap-8">

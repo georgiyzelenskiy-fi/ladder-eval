@@ -42,11 +42,11 @@ The application is a **finite state machine** driven by the Manager (Driver).
 
 ### 3.2 Phase 2 — Live evaluation (synchronous, e.g. Zoom)
 
-Manager drives the UI. The MVP uses **two complementary manager surfaces** under the same session FSM (`preparation` → `live` → `finished`):
+Manager drives the UI. The MVP uses **two complementary manager surfaces** under the same session FSM (`preparation` → `live` → `finished`) for a given **`sessions.slug`** (see **§6.3** for multi-round URLs):
 
 **A — Control room (`/room/driver`)**  
 - **Sequential competency focus:** The manager sets which competency is “in focus” (prev/next/jump/clear). The team walks the matrix **one skill at a time**.  
-- Evaluators use **`/eval/[slug]`**; each still sees only **their own** evaluation rows during prep and live. The focused competency is **highlighted**; others are de-emphasized until the manager moves focus.  
+- Evaluators use **`/eval/[slug]`** (optional **`?session=<session-slug>`** when not the default round); each still sees only **their own** evaluation rows during prep and live. The focused competency is **highlighted**; others are de-emphasized until the manager moves focus.  
 - **Active evaluator** (optional) signals whose matrix is “hot” for discussion; it does not change role-based prep secrecy.
 
 **B — Live evaluation (`/room/live-evaluation`)**  
@@ -128,6 +128,13 @@ Use the project’s actual step size if it differs from `0.1`; the doc encodes t
 
 - **Evaluation screen:** Split view — **left:** hierarchical checkbox list with Dreyfus-style descriptors; **right:** sticky rationale + manual mark.
 - **Manager dashboard:** “Control room” — roster with per-evaluator status (**Ready / In-progress / Not started**); **Broadcast to team** (or equivalent) to trigger reveal.
+
+### 6.3 Session identity and shareable URLs
+
+- Each evaluation **round** is a Convex **`sessions`** row keyed by a **session slug** (unique, human-readable; canonical bootstrap slug **`default`**).
+- **Evaluators** open **`/eval/[evaluatorSlug]`**. The path segment is the participant’s **`users.slug`**, which is unique **per session**, not globally. When multiple rounds exist (or any non-`default` session), shared links include **`?session=<session-slug>`** so the client resolves the correct `sessions` row before any `users` / `joinSession` work.
+- **Managers** use **`/manage`** (Team setup) to create or open a session, edit roster, and **copy evaluator URLs** (with `?session=` when needed). Manager surfaces **`/room/driver`** and **`/room/live-evaluation`** use the same **`?session=`** query param so control room and live calibration target the same round as the team’s matrix links.
+- **Browser persistence** (`localStorage` binding evaluator ↔ Convex `users` id) is **scoped by session slug + evaluator slug** so the same browser can participate in different rounds without collisions.
 
 ---
 

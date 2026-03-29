@@ -32,7 +32,7 @@
 
 | Item | Notes |
 |------|--------|
-| **Beyond slug URLs** | Slugs + `localStorage` worked for MVP. Next iteration: stronger identity (magic link, SSO, or team invite tokens), optional accounts, and clearer **session ↔ user** binding without sharing opaque paths. |
+| **Beyond slug URLs** | Slugs + `localStorage` worked for MVP. **Session ↔ round** binding for multiple concurrent rounds: **`?session=<session-slug>`** + Team setup (`/manage`) — product intent in [design-document.md §6.3](./design-document.md). Next iteration: stronger identity (magic link, SSO, or team invite tokens), optional accounts, and clearer binding without sharing paths. |
 
 ---
 

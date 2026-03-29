@@ -10,7 +10,7 @@
 
 * **`lib/skill-rubric-common.ts`** — Shared 1–5 level definitions and types (`SkillCompetency`, criteria nesting).
 * **`lib/hard-skills-rubric.ts`**, **`lib/soft-skills-rubric.ts`** — Full competency trees for evaluation UI and (later) Convex seeding.
-* **`lib/roster-presets/burger.ts`** — Emplifi “Burger” team: manager + five evaluators (slugs, display names, emails for invites). Drives `users.seedRoster` from the manager UI.
+* **`app/manage/`** — Manager **Team setup**: create/open session by slug, roster (add/update/remove people), copy evaluator URLs (`?session=` when not `default`). Convex: `users.upsertRosterUser`, `users.removeRosterUser`, `users.seedRoster` (optional bulk).
 * **`lib/skill-checkpoints.ts`** — Deterministic checkpoint IDs per competency (`competencyToCheckpoints`).
 * **`lib/scoring.ts`** — Foundation-first + spike UI estimate (`computeFoundationFirstUiEstimate`); covered by `npm test`.
 * **Static UI references:** `docs/skill-evaluation.html`, `docs/developer-dashboard.html`, `docs/live-group-evaluation.html` — HTML prototypes aligned with [design-document.md §6.2](./design-document.md) patterns; port to App Router components when wiring the live matrix.
@@ -49,8 +49,8 @@ Modules: `convex/session.ts`, `convex/users.ts`, `convex/evaluations.ts`, `conve
 
 ## 5. MVP "Shortcut" Authentication
 To avoid the complexity of Auth0 or NextAuth:
-1.  **Manager access:** Control room at **`/room/driver`**; live evaluation at **`/room/live-evaluation`** (same optional **`MANAGER_ACCESS_KEY`** gate via **`?k=…`**). See `.env.local.example`.
-2.  **Evaluator access:** One URL per participant, e.g. **`/eval/dev-1`** — swap the last segment for each slug the manager hands out.
+1.  **Manager access:** Team setup at **`/manage`**; control room at **`/room/driver`**; live evaluation at **`/room/live-evaluation`** (optional **`MANAGER_ACCESS_KEY`** gate via **`?k=…`** on those routes). See `.env.local.example`.
+2.  **Evaluator access:** One URL per participant, e.g. **`/eval/dev-1`**. The manager copies links from **`/manage`**. For any session other than **`default`**, URLs include **`?session=<sessions.slug>`** so the app resolves the correct round (evaluator `slug` is unique per session, not globally). See [design-document.md §6.3](./design-document.md).
 3.  **Persistence:** On first visit, the evaluator enters their name; Convex `users.joinSession` runs and the returned **`userId`** is stored in **`localStorage`** (key includes session slug + evaluator slug; see `lib/devsync-constants.ts`).
 4.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
 

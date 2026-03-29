@@ -11,10 +11,6 @@ import {
   readManageSessionSlug,
   writeManageSessionSlug,
 } from "@/lib/manage-session-storage";
-import {
-  BURGER_ROSTER,
-  BURGER_TEAM_TITLE,
-} from "@/lib/roster-presets/burger";
 import { normalizeSessionSlug } from "@/lib/session-slug";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -49,7 +45,6 @@ export function ManageClient({ managerKeyFromUrl }: Props) {
 
   const createSession = useMutation(api.session.createSession);
   const updateSessionTitle = useMutation(api.session.updateSessionTitle);
-  const seedRoster = useMutation(api.users.seedRoster);
   const upsertRosterUser = useMutation(api.users.upsertRosterUser);
   const removeRosterUser = useMutation(api.users.removeRosterUser);
 
@@ -219,33 +214,6 @@ export function ManageClient({ managerKeyFromUrl }: Props) {
                 Save title
               </button>
             </div>
-          </section>
-
-          <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 px-4 py-4 dark:border-zinc-800">
-            <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              Roster preset
-            </h2>
-            <button
-              type="button"
-              disabled={busy !== null || session.phase === "finished"}
-              onClick={() =>
-                run("seed", () =>
-                  seedRoster({
-                    sessionId,
-                    title: BURGER_TEAM_TITLE,
-                    entries: BURGER_ROSTER.map(({ slug, name, role }) => ({
-                      slug,
-                      name,
-                      role,
-                    })),
-                    managerKey: effectiveManagerKey,
-                  }),
-                )
-              }
-              className="w-fit rounded-lg border border-amber-600/50 bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
-            >
-              {busy === "seed" ? "Seeding…" : `Seed “${BURGER_TEAM_TITLE}” team`}
-            </button>
           </section>
 
           <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 px-4 py-4 dark:border-zinc-800">

@@ -21,7 +21,7 @@ Structured **360° evaluation** for a small dev team: **prepare-then-reveal** (a
    ```
 
    - `NEXT_PUBLIC_CONVEX_URL` — required for live data and Convex hooks.
-   - `MANAGER_ACCESS_KEY` (optional) — if set, open manager UIs as `/room/driver?k=<value>` and `/room/live-evaluation?k=<value>` (Next.js gate; Convex live-eval mutations also check the key when set).
+   - `MANAGER_ACCESS_KEY` (optional) — if set, open manager UIs with `?k=<value>` (e.g. `/manage`, `/room/driver`, `/room/live-evaluation`; Next.js gate; Convex manager mutations also check the key when set).
 
 2. **Terminal A — Convex**
 
@@ -43,19 +43,17 @@ Other commands: `npm test` (Vitest), `npm run lint`, `npm run build`.
 
 ## Evaluation session flow (MVP)
 
-Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Everyone shares the same Convex session.
+Sessions are keyed by a **session slug** (human-readable). The built-in **`default`** slug is used when no `?session=` is present on evaluator/room URLs; additional rounds use Team setup + `?session=<slug>` on shared links.
 
 | Step | Who | Action |
 |------|-----|--------|
-| 1 | Manager | Open **`/room/driver`**, click **Seed “Burger” team** once (idempotent). Sets roster + session title `Burger`. |
-| 2 | Manager | Drive **phase** (preparation → live → verdict), **active evaluator**, and **submit verdict** when done. |
-| 3 | Each participant | Open their **`/eval/<slug>`** link from the home page (or construct it). **Continue** binds this browser via `localStorage` to their Convex `users` row. |
-
-**Burger preset** (names, emails for invites, URL slugs): [`lib/roster-presets/burger.ts`](lib/roster-presets/burger.ts). Evaluator slugs include `adrien-rouaix`, `daniil-belov`, `david-veltzer`, `georgiy-zelenskiy`, `julien-baron`; manager join link uses `honza-sroubek`.
+| 1 | Manager | Open **`/manage`**, create or open a session, add people (or bulk via `users.seedRoster` from custom tooling). Copy each evaluator’s URL from Team setup. |
+| 2 | Manager | Drive **phase** from **`/room/driver`** (preparation → live → verdict), **active evaluator**, **submit verdict** when done; use **`/room/live-evaluation`** for peer reveal + calibration. |
+| 3 | Each participant | Open their copied **`/eval/<slug>`** link (with **`?session=…`** if not `default`). **Continue** binds this browser via `localStorage` to their Convex `users` row. |
 
 **Convex surface (high level):** `session.*` (bootstrap, phase, active evaluator, live skill focus, live-eval wizard, verdict), `users.*` (roster, join, seed), `evaluations.*` (checkboxes, prep-safe list, live aggregates), `liveEvaluation.*` (manager bundle + calibration marks). Schema: [`convex/schema.ts`](convex/schema.ts).
 
-**Conceptual model:** Evaluators write **per–(subject × skill)** rows in `evaluations` (checkboxes, optional manual mark + rationale). During **preparation**, each client only loads **their own** evaluator rows (`listEvaluationsForEvaluator`). The manager uses **`/room/driver`** for session FSM + prep aggregates, **`/room/live-evaluation`** for peer-reveal queue + calibration marks, and optional **`MANAGER_ACCESS_KEY`** + `?k=` on those routes when set. Full product intent and checklist: [`docs/design-document.md`](docs/design-document.md).
+**Conceptual model:** Evaluators write **per–(subject × skill)** rows in `evaluations` (checkboxes, optional manual mark + rationale). During **preparation**, each client only loads **their own** evaluator rows (`listEvaluationsForEvaluator`). The manager uses **`/manage`** for roster + links, **`/room/driver`** for session FSM + prep aggregates, **`/room/live-evaluation`** for peer-reveal queue + calibration marks, and optional **`MANAGER_ACCESS_KEY`** + `?k=` when set. Product source of truth + checklist: [`docs/design-document.md`](docs/design-document.md); **session slug + `?session=`** rationale: [**§6.3**](docs/design-document.md#63-session-identity-and-shareable-urls).
 
 ---
 
@@ -63,10 +61,11 @@ Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Every
 
 | Path | Purpose |
 |------|---------|
-| `/` | Setup hints + deep links to control room and Burger eval URLs |
-| `/room/driver` | Manager control room (requires `NEXT_PUBLIC_CONVEX_URL`; optional `?k=` if `MANAGER_ACCESS_KEY` is set) |
-| `/room/live-evaluation` | Manager live calibration UI (same env + optional gate); HTML reference: [`docs/live-group-evaluation.html`](docs/live-group-evaluation.html) |
-| `/eval/[slug]` | Evaluator join + full skill matrix (`EvaluatorMatrix` → `evaluations.updateCheckboxes`) |
+| `/` | Setup hints + links to Team setup and room routes |
+| `/manage` | Manager Team setup: session slug, roster, copy evaluator URLs (optional `?k=` if `MANAGER_ACCESS_KEY` is set) |
+| `/room/driver` | Manager control room (requires `NEXT_PUBLIC_CONVEX_URL`; optional `?session=` + `?k=`) |
+| `/room/live-evaluation` | Manager live calibration UI (same env + optional `?session=` + `?k=`); HTML reference: [`docs/live-group-evaluation.html`](docs/live-group-evaluation.html) |
+| `/eval/[slug]` | Evaluator join + full skill matrix (`EvaluatorMatrix` → `evaluations.updateCheckboxes`); optional `?session=` |
 
 ---
 
@@ -77,7 +76,7 @@ Single canonical session slug: **`default`** (`lib/devsync-constants.ts`). Every
 | Rubrics | `lib/hard-skills-rubric.ts`, `lib/soft-skills-rubric.ts`, `lib/skill-rubric-common.ts` | Level 1–5 criteria trees |
 | Checkpoints & scoring | `lib/skill-checkpoints.ts`, `lib/scoring.ts`, `lib/scoring.test.ts` | Stable IDs + foundation-first UI estimate |
 | Convex API | `convex/` | Schema + session / users / evaluations / liveEvaluation |
-| Manager UI | `app/room/driver/`, `app/room/live-evaluation/` | FSM + seed + aggregates; live peer queue + calibration |
+| Manager UI | `app/manage/`, `app/room/driver/`, `app/room/live-evaluation/` | Team setup + roster links; FSM + aggregates; live peer queue + calibration |
 | Evaluator join | `app/eval/[slug]/` | Join + matrix; prep privacy via Convex query filter |
 | UI prototypes | `docs/skill-evaluation.html`, `docs/developer-dashboard.html`, `docs/live-group-evaluation.html` | HTML reference; App Router ports for matrix + live eval |
 

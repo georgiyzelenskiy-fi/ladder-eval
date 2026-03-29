@@ -6,10 +6,7 @@ import {
   useStoredManagerAccessKey,
 } from "@/lib/devsync-browser";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
-import {
-  BURGER_ROSTER,
-  BURGER_TEAM_TITLE,
-} from "@/lib/roster-presets/burger";
+import { buildRoomHref } from "@/lib/room-url";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -78,7 +75,6 @@ export function DriverClient({
   const pickNext = useMutation(api.session.pickNextEvaluator);
   const setRevealSkill = useMutation(api.session.setActiveRevealSkill);
   const submitVerdict = useMutation(api.session.submitVerdict);
-  const seedRoster = useMutation(api.users.seedRoster);
 
   const sessionId = session?._id;
   const roster = useQuery(
@@ -152,7 +148,11 @@ export function DriverClient({
             </code>
             . For sequential peer reveal per skill, use{" "}
             <a
-              href="/room/live-evaluation"
+              href={buildRoomHref(
+                "/room/live-evaluation",
+                sessionSlug,
+                effectiveManagerKey,
+              )}
               className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 dark:text-zinc-100"
             >
               Live evaluation
@@ -164,37 +164,6 @@ export function DriverClient({
           Phase: {session.phase}
         </div>
       </header>
-
-      <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/30">
-        <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          Roster preset
-        </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Seed Honza + Burger evaluators (idempotent — safe to click again after
-          name tweaks in code).
-        </p>
-        <button
-          type="button"
-          disabled={busy !== null || session.phase === "finished"}
-          onClick={() =>
-            run("seed", () =>
-              seedRoster({
-                sessionId: session._id,
-                title: BURGER_TEAM_TITLE,
-                entries: BURGER_ROSTER.map(({ slug, name, role }) => ({
-                  slug,
-                  name,
-                  role,
-                })),
-                managerKey: effectiveManagerKey,
-              }),
-            )
-          }
-          className="w-fit rounded-lg border border-amber-600/50 bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-950 disabled:opacity-40 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
-        >
-          {busy === "seed" ? "Seeding…" : `Seed “${BURGER_TEAM_TITLE}” team`}
-        </button>
-      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -401,7 +370,8 @@ export function DriverClient({
           <p className="text-sm text-zinc-500">Loading roster…</p>
         ) : roster.length === 0 ? (
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            No participants yet. Share evaluator links from the home page.
+            No participants yet. Add people in Team setup (
+            <code className="text-xs">/manage</code>) and share their links.
           </p>
         ) : (
           <ul className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
