@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   persistManagerAccessKey,
+  useJoinedEvaluatorSessionHints,
   useStoredManagerAccessKey,
 } from "@/lib/devsync-browser";
 import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
@@ -12,6 +13,7 @@ import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import { competencyToCheckpoints } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -91,6 +93,8 @@ export function LiveEvaluationClient({
   const effectiveManagerKey =
     managerKeyFromUrl ?? storedManagerKey ?? undefined;
   const canManage = !managerGateActive || Boolean(effectiveManagerKey);
+  const { evalSlug: joinedEvalSlug, convexUserId: joinedConvexUserId } =
+    useJoinedEvaluatorSessionHints();
 
   useEffect(() => {
     if (managerKeyFromUrl) persistManagerAccessKey(managerKeyFromUrl);
@@ -307,6 +311,18 @@ export function LiveEvaluationClient({
     [bundle?.roster, liveSubjectId],
   );
 
+  const nextInQueueUserId =
+    liveSubjectId &&
+    revealOrder.length > 0 &&
+    revealCursor < revealOrder.length
+      ? revealOrder[revealCursor]
+      : null;
+  const isMyRevealTurn =
+    !canManage &&
+    joinedConvexUserId != null &&
+    nextInQueueUserId != null &&
+    nextInQueueUserId === joinedConvexUserId;
+
   if (bootError) {
     return (
       <p className="mx-auto max-w-3xl px-6 py-10 text-sm text-error">
@@ -347,19 +363,43 @@ export function LiveEvaluationClient({
       {!canManage ? (
         <div
           role="status"
-          className="shrink-0 border-b border-warning/25 bg-warning-muted/15 px-4 py-2.5 text-center text-[11px] leading-snug text-on-surface"
+          className="shrink-0 border-b border-outline-variant/25 bg-surface-container-high px-4 py-3 text-center text-[11px] leading-snug text-on-surface"
         >
-          <span className="font-semibold text-warning">View only.</span> The
-          manager controls skill focus, subject, reveal order, and baseline
-          commits. Open once with{" "}
-          <code className="rounded bg-surface-container-high px-1 font-mono text-[10px]">
-            ?k=…
-          </code>{" "}
-          while <code className="font-mono text-[10px]">MANAGER_ACCESS_KEY</code>{" "}
-          is set — this browser stores the key for later visits without the query
-          string. The sidebar &quot;Live calibration&quot; link adds{" "}
-          <code className="font-mono text-[10px]">?k=</code> automatically when a
-          key is stored. Mirror the same secret in Convex.
+          <p className="text-on-surface-variant">
+            <span className="font-semibold text-on-surface">Follow-along.</span>{" "}
+            The manager drives skill, subject, reveal order, and baseline
+            commits. Need controls? Open{" "}
+            <Link
+              href="/room/driver"
+              className="font-semibold text-primary underline decoration-primary/40 underline-offset-2"
+            >
+              Control room
+            </Link>
+            {joinedEvalSlug ? (
+              <>
+                {" "}
+                or your{" "}
+                <Link
+                  href={`/eval/${joinedEvalSlug}`}
+                  className="font-semibold text-primary underline decoration-primary/40 underline-offset-2"
+                >
+                  skill matrix
+                </Link>
+              </>
+            ) : null}
+            .
+          </p>
+          {managerGateActive ? (
+            <p className="mt-2 text-[10px] text-on-surface-variant/80">
+              Managers: visit once with{" "}
+              <code className="rounded bg-surface-container-low px-1 font-mono">
+                ?k=…
+              </code>{" "}
+              (matching{" "}
+              <code className="font-mono">MANAGER_ACCESS_KEY</code>) — the
+              sidebar stores it for later.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -395,11 +435,31 @@ export function LiveEvaluationClient({
           <div className="flex gap-6 overflow-x-auto pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MATRIX_COMPETENCIES.map((c) => {
               const active = liveSkillId === c.id;
+              const tabClass = `shrink-0 whitespace-nowrap px-2 py-3 text-[10px] font-black uppercase tracking-widest ${
+                active
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-on-surface-variant"
+              }`;
+              if (!canManage) {
+                return (
+                  <span
+                    key={c.id}
+                    className={tabClass}
+                    title={
+                      active
+                        ? "Active skill (manager-controlled)"
+                        : undefined
+                    }
+                  >
+                    {c.name}
+                  </span>
+                );
+              }
               return (
                 <button
                   key={c.id}
                   type="button"
-                  disabled={!canManage || busy !== null}
+                  disabled={busy !== null}
                   onClick={() =>
                     run("skill", () =>
                       setLiveEvalSkill({
@@ -409,11 +469,7 @@ export function LiveEvaluationClient({
                       }),
                     )
                   }
-                  className={`shrink-0 whitespace-nowrap px-2 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                    active
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-on-surface-variant hover:text-on-surface"
-                  } disabled:opacity-40`}
+                  className={`${tabClass} transition-colors hover:text-on-surface disabled:opacity-40`}
                 >
                   {c.name}
                 </button>
@@ -479,65 +535,77 @@ export function LiveEvaluationClient({
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="sr-only" htmlFor="live-eval-subject">
-                Subject
-              </label>
-              <select
-                id="live-eval-subject"
-                className="max-w-[220px] rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface"
-                value={liveSubjectId ?? ""}
-                disabled={
-                  !canManage || busy !== null || evaluatees.length === 0
-                }
-                onChange={(e) => {
-                  const v = e.target.value as Id<"users">;
-                  if (!v) return;
-                  run("subject", () =>
-                    setLiveEvalSubject({
-                      sessionId: session._id,
-                      subjectId: v,
-                      managerKey: effectiveManagerKey,
-                    }),
-                  );
-                }}
-              >
-                <option value="">Select subject…</option>
-                {evaluatees.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name || u.slug}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={
-                  !canManage || busy !== null || evaluatees.length === 0
-                }
-                onClick={() =>
-                  run("rand-subj", () =>
-                    randomizeLiveEvalSubject({
-                      sessionId: session._id,
-                      managerKey: effectiveManagerKey,
-                    }),
-                  )
-                }
-                className="flex items-center gap-2 rounded-lg border border-outline-variant/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface disabled:opacity-40"
-              >
-                <span className="material-symbols-outlined text-sm">shuffle</span>
-                Randomize subject
-              </button>
-              <div
-                className="hidden h-10 w-px bg-outline-variant/30 sm:block"
-                aria-hidden
-              />
-            </div>
+            {canManage ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="sr-only" htmlFor="live-eval-subject">
+                  Subject
+                </label>
+                <select
+                  id="live-eval-subject"
+                  className="max-w-[220px] rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface"
+                  value={liveSubjectId ?? ""}
+                  disabled={busy !== null || evaluatees.length === 0}
+                  onChange={(e) => {
+                    const v = e.target.value as Id<"users">;
+                    if (!v) return;
+                    run("subject", () =>
+                      setLiveEvalSubject({
+                        sessionId: session._id,
+                        subjectId: v,
+                        managerKey: effectiveManagerKey,
+                      }),
+                    );
+                  }}
+                >
+                  <option value="">Select subject…</option>
+                  {evaluatees.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name || u.slug}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={busy !== null || evaluatees.length === 0}
+                  onClick={() =>
+                    run("rand-subj", () =>
+                      randomizeLiveEvalSubject({
+                        sessionId: session._id,
+                        managerKey: effectiveManagerKey,
+                      }),
+                    )
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-outline-variant/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface disabled:opacity-40"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    shuffle
+                  </span>
+                  Randomize subject
+                </button>
+                <div
+                  className="hidden h-10 w-px bg-outline-variant/30 sm:block"
+                  aria-hidden
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low/80 px-3 py-2 text-xs text-on-surface-variant">
+                <span className="font-bold uppercase tracking-widest text-[9px] text-on-surface-variant">
+                  Subject
+                </span>
+                <p className="mt-1 font-medium text-on-surface">
+                  {liveSubjectId
+                    ? (nameByUserId.get(liveSubjectId) ?? "—")
+                    : "Not selected yet"}
+                </p>
+              </div>
+            )}
           </div>
 
           {!liveSubjectId ? (
             <p className="text-sm text-on-surface-variant">
-              Seed a roster in the control room, then pick a subject to start the
-              reveal queue.
+              {canManage
+                ? "Seed a roster in the control room, then pick a subject to start the reveal queue."
+                : "Waiting for the manager to select a subject."}
             </p>
           ) : (
             <div className="grid grid-cols-12 gap-8">
@@ -550,35 +618,93 @@ export function LiveEvaluationClient({
                     <h3 className="text-lg font-bold text-on-surface">
                       The reveal queue
                     </h3>
+                    {!canManage && liveSubjectId && revealOrder.length > 0 ? (
+                      <p className="mt-1 text-[11px] text-on-surface-variant">
+                        {allPeersRevealed ? (
+                          <>
+                            <span className="font-semibold text-primary">
+                              Full queue revealed
+                            </span>
+                            {" · "}
+                            {revealCursor}/{revealOrder.length}
+                          </>
+                        ) : (
+                          <>
+                            Reveal progress{" "}
+                            <span className="font-mono text-on-surface">
+                              {revealCursor}/{revealOrder.length}
+                            </span>
+                            {nextInQueueUserId ? (
+                              <>
+                                {" · "}
+                                Next:{" "}
+                                <span className="font-semibold text-on-surface">
+                                  {nameByUserId.get(nextInQueueUserId) ??
+                                    nextInQueueUserId}
+                                </span>
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </p>
+                    ) : null}
                   </div>
-                  <button
-                    type="button"
-                    disabled={
-                      !canManage ||
-                      busy !== null ||
-                      revealOrder.length === 0 ||
-                      allPeersRevealed
-                    }
-                    onClick={() =>
-                      run("reveal", () =>
-                        liveEvalRevealNext({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
+                  {canManage ? (
+                    <button
+                      type="button"
+                      disabled={
+                        busy !== null ||
+                        revealOrder.length === 0 ||
+                        allPeersRevealed
+                      }
+                      onClick={() =>
+                        run("reveal", () =>
+                          liveEvalRevealNext({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="flex items-center gap-2 rounded-lg bg-primary-container px-6 py-2.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_15px_-3px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        visibility
+                      </span>
+                      Reveal next (
+                      {revealOrder.length === 0
+                        ? "0/0"
+                        : `${revealCursor}/${revealOrder.length}`}
                       )
-                    }
-                    className="flex items-center gap-2 rounded-lg bg-primary-container px-6 py-2.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_15px_-3px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      visibility
-                    </span>
-                    Reveal next (
-                    {revealOrder.length === 0
-                      ? "0/0"
-                      : `${revealCursor}/${revealOrder.length}`}
-                    )
-                  </button>
+                    </button>
+                  ) : null}
                 </div>
+
+                {isMyRevealTurn ? (
+                  <div
+                    role="status"
+                    className="rounded-lg border border-primary/35 bg-primary/10 px-4 py-3 text-[11px] leading-snug text-on-surface"
+                  >
+                    <span className="font-black uppercase tracking-widest text-primary">
+                      Your row is next
+                    </span>
+                    <p className="mt-1 text-on-surface-variant">
+                      When the manager reveals, the call will focus on your
+                      inputs for this skill. You can open your matrix to review
+                      your prep.
+                      {joinedEvalSlug ? (
+                        <>
+                          {" "}
+                          <Link
+                            href={`/eval/${joinedEvalSlug}`}
+                            className="font-semibold text-primary underline decoration-primary/40 underline-offset-2"
+                          >
+                            Open your matrix
+                          </Link>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {revealOrder.map((peerId, i) => {
@@ -669,90 +795,140 @@ export function LiveEvaluationClient({
                     control room.
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">
-                  <button
-                    type="button"
-                    disabled={!canManage || busy !== null || revealCursor === 0}
-                    onClick={() =>
-                      run("reset-reveal", () =>
-                        resetLiveEvalReveal({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
-                      )
-                    }
-                    className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
-                  >
-                    Reset reveal
-                  </button>
-                  <span className="text-outline-variant/40" aria-hidden>
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    disabled={
-                      !canManage || busy !== null || revealOrder.length < 2
-                    }
-                    onClick={() =>
-                      run("shuffle", () =>
-                        shuffleLiveEvalOrder({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
-                      )
-                    }
-                    className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
-                  >
-                    Shuffle order
-                  </button>
-                </div>
+                {canManage ? (
+                  <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">
+                    <button
+                      type="button"
+                      disabled={busy !== null || revealCursor === 0}
+                      onClick={() =>
+                        run("reset-reveal", () =>
+                          resetLiveEvalReveal({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
+                    >
+                      Reset reveal
+                    </button>
+                    <span className="text-outline-variant/40" aria-hidden>
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy !== null || revealOrder.length < 2}
+                      onClick={() =>
+                        run("shuffle", () =>
+                          shuffleLiveEvalOrder({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
+                    >
+                      Shuffle order
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
-                <div className="flex flex-col rounded-xl border-2 border-primary/40 bg-surface-container-highest/90 p-6 shadow-2xl backdrop-blur-md">
+                <div
+                  className={`flex flex-col rounded-xl border-2 p-6 shadow-2xl backdrop-blur-md ${
+                    canManage
+                      ? "border-primary/40 bg-surface-container-highest/90"
+                      : "border-outline-variant/30 bg-surface-container-high/90"
+                  }`}
+                >
                   <div className="mb-6 flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded bg-primary/20">
-                      <span className="material-symbols-outlined text-sm text-primary">
-                        gavel
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded ${
+                        canManage ? "bg-primary/20" : "bg-surface-container-highest"
+                      }`}
+                    >
+                      <span
+                        className={`material-symbols-outlined text-sm ${
+                          canManage ? "text-primary" : "text-on-surface-variant"
+                        }`}
+                      >
+                        {canManage ? "gavel" : "visibility"}
                       </span>
                     </span>
                     <h3 className="text-sm font-black uppercase tracking-tight text-on-surface">
-                      Final calibration
+                      {canManage ? "Final calibration" : "Calibration status"}
                     </h3>
                   </div>
                   <p className="mb-8 text-xs leading-relaxed text-on-surface-variant">
-                    Finalize{" "}
-                    <span className="font-semibold text-on-surface">
-                      {nameByUserId.get(liveSubjectId)}
-                    </span>
-                    &apos;s score for{" "}
-                    <span className="font-bold text-primary">{liveSkillName}</span>{" "}
-                    based on the current evaluator reveals.
-                    {!allPeersRevealed ? (
-                      <span className="mt-2 block text-warning">
-                        Reveal the full queue before committing.
-                      </span>
-                    ) : null}
+                    {canManage ? (
+                      <>
+                        Finalize{" "}
+                        <span className="font-semibold text-on-surface">
+                          {nameByUserId.get(liveSubjectId)}
+                        </span>
+                        &apos;s score for{" "}
+                        <span className="font-bold text-primary">
+                          {liveSkillName}
+                        </span>{" "}
+                        based on the current evaluator reveals.
+                        {!allPeersRevealed ? (
+                          <span className="mt-2 block text-warning">
+                            Reveal the full queue before committing.
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        Committed baseline for{" "}
+                        <span className="font-semibold text-on-surface">
+                          {nameByUserId.get(liveSubjectId)}
+                        </span>{" "}
+                        on{" "}
+                        <span className="font-bold text-primary">
+                          {liveSkillName}
+                        </span>
+                        . Only the manager updates this after the call.
+                        {!allPeersRevealed ? (
+                          <span className="mt-2 block text-on-surface-variant">
+                            Reveals still in progress (
+                            {revealCursor}/{revealOrder.length}).
+                          </span>
+                        ) : null}
+                      </>
+                    )}
                   </p>
                   <div className="space-y-6">
-                    <div>
-                      <label
-                        htmlFor="calib-override"
-                        className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant"
-                      >
-                        Manual override
-                      </label>
-                      <input
-                        id="calib-override"
-                        type="text"
-                        inputMode="decimal"
-                        value={calibDraft}
-                        readOnly={!canManage}
-                        onChange={(e) => setCalibDraft(e.target.value)}
-                        placeholder="e.g. 4.2"
-                        className="w-full border-0 border-b-2 border-outline-variant bg-surface-container-low py-2 text-3xl font-black text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-0 read-only:opacity-80"
-                      />
-                    </div>
+                    {canManage ? (
+                      <div>
+                        <label
+                          htmlFor="calib-override"
+                          className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant"
+                        >
+                          Manual override
+                        </label>
+                        <input
+                          id="calib-override"
+                          type="text"
+                          inputMode="decimal"
+                          value={calibDraft}
+                          onChange={(e) => setCalibDraft(e.target.value)}
+                          placeholder="e.g. 4.2"
+                          className="w-full border-0 border-b-2 border-outline-variant bg-surface-container-low py-2 text-3xl font-black text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-0"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">
+                          Committed baseline
+                        </p>
+                        <p className="border-b-2 border-outline-variant/50 py-2 text-3xl font-black text-on-surface">
+                          {currentMark !== undefined
+                            ? currentMark.toFixed(1)
+                            : "—"}
+                        </p>
+                      </div>
+                    )}
                     <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
@@ -777,41 +953,51 @@ export function LiveEvaluationClient({
                           <div
                             className="h-full bg-outline-variant transition-all"
                             style={{
-                              width: `${!Number.isNaN(calibDraftNum) && calibDraftNum >= 0 ? Math.min(100, (calibDraftNum / 5) * 100) : 0}%`,
+                              width: `${(() => {
+                                const v = canManage
+                                  ? calibDraftNum
+                                  : currentMark ?? Number.NaN;
+                                return !Number.isNaN(v) && v >= 0
+                                  ? Math.min(100, (v / 5) * 100)
+                                  : 0;
+                              })()}%`,
                             }}
                           />
                         </div>
                       </div>
                       <p className="mt-2 text-[8px] uppercase tracking-widest text-on-surface-variant opacity-70">
-                        Bars: revealed peer mean · draft override (0–5 scale)
+                        {canManage
+                          ? "Bars: revealed mean · draft override (0–5)"
+                          : "Bars: revealed mean · committed baseline (0–5)"}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      disabled={
-                        !canManage ||
-                        busy !== null ||
-                        !allPeersRevealed ||
-                        !calibDraft.trim() ||
-                        Number.isNaN(Number(calibDraft))
-                      }
-                      onClick={() => {
-                        const n = Number(calibDraft);
-                        if (Number.isNaN(n)) return;
-                        run("commit", () =>
-                          upsertCalibrationMark({
-                            sessionId: session._id,
-                            subjectId: liveSubjectId,
-                            skillId: liveSkillId,
-                            mark: n,
-                            managerKey: effectiveManagerKey,
-                          }),
-                        );
-                      }}
-                      className="w-full rounded-lg bg-primary py-4 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_20px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
-                    >
-                      Commit baseline
-                    </button>
+                    {canManage ? (
+                      <button
+                        type="button"
+                        disabled={
+                          busy !== null ||
+                          !allPeersRevealed ||
+                          !calibDraft.trim() ||
+                          Number.isNaN(Number(calibDraft))
+                        }
+                        onClick={() => {
+                          const n = Number(calibDraft);
+                          if (Number.isNaN(n)) return;
+                          run("commit", () =>
+                            upsertCalibrationMark({
+                              sessionId: session._id,
+                              subjectId: liveSubjectId,
+                              skillId: liveSkillId,
+                              mark: n,
+                              managerKey: effectiveManagerKey,
+                            }),
+                          );
+                        }}
+                        className="w-full rounded-lg bg-primary py-4 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_20px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+                      >
+                        Commit baseline
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>

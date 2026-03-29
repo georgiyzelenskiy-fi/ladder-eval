@@ -13,7 +13,7 @@
 | Item | Notes |
 |------|--------|
 | **Self in peer reveal** | **Done:** reveal order is all evaluators by slug (`computePeerRevealOrder`), including the subject’s self row; UI labels self in the queue. |
-| **Non-manager UX** | Disabled manager controls are a quick MVP pattern. **Improve:** hide chrome entirely for evaluators, or replace with **dev-appropriate** actions (read-only context, “your turn” hints, deep links) instead of greyed-out buttons. |
+| **Non-manager UX** | **Done:** `/room/live-evaluation` hides manager controls; read-only skill tabs, subject line, reveal progress + “next”; **Your row is next** when this browser’s joined `/eval` user matches the next queue id; links to control room + matrix; calibration sidebar is read-only status. |
 | **Hard vs soft grouping** | Support sessions that evaluate **only hard skills** or **only soft skills**: group competencies in the UI/session config so the matrix and live-eval tabs match the intended scope without scrolling past irrelevant blocks. |
 
 ---
@@ -68,7 +68,7 @@
 | Theme | Likely touchpoints |
 |-------|-------------------|
 | Live peer order + self | `lib/live-eval-session.ts` (`computePeerRevealOrder`), `convex/session.ts` (`defaultLiveEvalRevealOrder`, `setLiveEvalSubject`, `randomizeLiveEvalSubject`), `LiveEvaluationClient.tsx` |
-| Non-manager UI | `LiveEvaluationClient.tsx`, `canManage` branches, room layout |
+| Non-manager UI | `LiveEvaluationClient.tsx`, `lib/devsync-browser.ts` (`useJoinedEvaluatorSessionHints`), room layout |
 | Skill grouping / session scope | `lib/*-skills-rubric.ts`, matrix competency list assembly, optional `sessions` fields |
 | Eval sticky subject + live emphasis | `EvaluatorMatrix.tsx` (or equivalent), `session.activeRevealSkillId` / live-eval bundle subscription |
 | Auth | `convex/users.ts`, join flows, env secrets, future IdP |
