@@ -22,8 +22,8 @@
 
 | Item | Notes |
 |------|--------|
-| **Subject switcher always reachable** | Changing **who** you evaluate today requires scrolling back to the subject control. Keep subject selection **sticky** or in a persistent header/sheet so it stays one tap away anywhere in the matrix. |
-| **Live session awareness** | When a **live evaluation** is active (driver focus or live-eval wizard), the matrix should **emphasize** the competency (and context) the group is reviewing and **on load** scroll or focus that region so evaluators land in the right place. |
+| **Subject switcher always reachable** | **Partial (2026-03):** Subject `<select>` in sticky `EvalWorkspaceShell` header (`EvalMatrixChromeContext`); initial option seeded once from `liveEvalSubjectId` (or first roster); evaluator can change anytime; manager updates do not override. |
+| **Live session awareness** | **Partial (2026-03):** Live-phase dim + ring on `activeRevealSkillId` ?? `liveEvalSkillId`; **one-time** scroll to that block on matrix load (not on later manager skill changes); focused block stays collapsible. |
 | **First-time complexity** | Overall look is acceptable; the full matrix can feel **overwhelming** at first. Add **progressive disclosure**: e.g. collapsed skill groups, a short guided first visit, “start here” for one subject, or a compact vs expanded mode. |
 
 ---

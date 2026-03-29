@@ -47,6 +47,7 @@ Manager drives the UI. The MVP uses **two complementary manager surfaces** under
 **A — Control room (`/room/driver`)**  
 - **Sequential competency focus:** The manager sets which competency is “in focus” (prev/next/jump/clear). The team walks the matrix **one skill at a time**.  
 - Evaluators use **`/eval/[slug]`** (optional **`?session=<session-slug>`** when not the default round); each still sees only **their own** evaluation rows during prep and live. The focused competency is **highlighted**; others are de-emphasized until the manager moves focus.  
+- **Evaluator matrix UX (post-MVP):** **Who** is being scored is chosen in the **sticky workspace header** (`EvalMatrixChromeContext` → `EvalWorkspaceShell`). The dropdown is seeded **once** when the roster first loads (prefer valid `liveEvalSubjectId`, else first roster member); later manager updates to `liveEvalSubjectId` do **not** override the evaluator’s selection, so someone can keep editing another row while the group focuses elsewhere. On first matrix paint, the page **scrolls once** to `activeRevealSkillId` ?? `liveEvalSkillId` when set; later focus changes do not rescroll. Focused skill rows stay **collapsible** (visual emphasis only). The join-page “Join as …” hero is shown only before first sign-in; evaluator + session appear in the shell after that.  
 - **Active evaluator** (optional) signals whose matrix is “hot” for discussion; it does not change role-based prep secrecy.
 
 **B — Live evaluation (`/room/live-evaluation`)**  

@@ -6,11 +6,13 @@ import {
   DEVSYNC_STORAGE_NOTIFY_EVENT,
   lastEvalSlugStorageKey,
 } from "@/lib/devsync-constants";
+import type { Id } from "@/convex/_generated/dataModel";
 import { buildRoomHref } from "@/lib/room-url";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useSyncExternalStore } from "react";
+import { useEvalMatrixChrome } from "./EvalMatrixChromeContext";
 
 function humanizeSlug(slug: string) {
   return slug
@@ -169,10 +171,17 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       <span className="text-on-surface">{roomHeaderTitle ?? ""}</span>
     );
 
+  const matrixChrome = useEvalMatrixChrome();
+
   const avatarLetter =
     evalSlug != null
       ? humanizeSlug(evalSlug).charAt(0) || "?"
       : (roomHeaderTitle?.charAt(0) ?? "?");
+
+  const avatarTitle =
+    matrixChrome?.signedInName && evalSlug != null
+      ? `${matrixChrome.signedInName} · ${humanizeSlug(evalSlug)}`
+      : undefined;
 
   const contentClass =
     props.contentWrapperClassName ?? "space-y-8 p-8";
@@ -302,18 +311,52 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       </aside>
 
       <main className="ml-64 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b border-outline-variant/15 bg-surface/80 px-8 backdrop-blur-xl">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="h-8 w-0.5 shrink-0 bg-primary" aria-hidden />
-            <h1 className="font-sans text-xs font-bold uppercase tracking-widest text-on-surface">
-              {evalSlug != null ? (
-                <>
-                  Evaluation workspace: {headerAccent}
-                </>
-              ) : (
-                <>{headerAccent}</>
-              )}
-            </h1>
+        <header className="sticky top-0 z-50 flex min-h-16 w-full shrink-0 flex-wrap items-center justify-between gap-3 border-b border-outline-variant/15 bg-surface/80 px-6 py-2 backdrop-blur-xl sm:px-8 sm:py-0">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center">
+              <div className="mt-1 h-8 w-0.5 shrink-0 bg-primary sm:mt-0" aria-hidden />
+              <h1 className="font-sans text-xs font-bold uppercase tracking-widest text-on-surface">
+                {evalSlug != null ? (
+                  <>
+                    <span className="text-on-surface-variant">Evaluation ·</span>{" "}
+                    {headerAccent}
+                    {props.variant !== "room" &&
+                    props.sessionSlug !== DEFAULT_SESSION_SLUG ? (
+                      <>
+                        {" "}
+                        <span className="font-mono text-[10px] font-bold normal-case tracking-normal text-on-surface-variant">
+                          · {props.sessionSlug}
+                        </span>
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  <>{headerAccent}</>
+                )}
+              </h1>
+            </div>
+            {evalSlug != null && matrixChrome ? (
+              <label className="flex min-w-[min(100%,14rem)] max-w-md flex-1 flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant sm:min-w-[12rem]">
+                Subject
+                <select
+                  className="w-full cursor-pointer border-0 border-b border-outline-variant bg-transparent py-1.5 text-sm font-normal normal-case tracking-normal text-on-surface focus:border-primary focus:outline-none focus:ring-0"
+                  value={matrixChrome.selectedSubjectId}
+                  onChange={(e) =>
+                    matrixChrome.onSubjectChange(e.target.value as Id<"users">)
+                  }
+                >
+                  {matrixChrome.roster.map((u) => (
+                    <option
+                      key={u._id}
+                      value={u._id}
+                      className="bg-surface-container text-on-surface"
+                    >
+                      {u.name} ({u.slug})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container px-3 py-1.5">
@@ -339,8 +382,9 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
                 settings
               </span>
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant"
-                aria-hidden
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant"
+                aria-hidden={!avatarTitle}
+                title={avatarTitle}
               >
                 {avatarLetter}
               </div>

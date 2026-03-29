@@ -10,7 +10,7 @@ import {
 } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
 import type { SkillCompetency } from "@/lib/skill-rubric-common";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 const COMPETENCY_ICONS: Record<string, string> = {
   "code-reviews": "rate_review",
@@ -108,20 +108,10 @@ export function SkillBlock({
   );
   const [expanded, setExpanded] = useState(true);
   const bodyId = useId();
-  const collapseLocked = revealHighlight;
-  const showBody = expanded || collapseLocked;
+  const showBody = expanded;
 
   const icon = competencyIcon(competency.id);
   const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!revealHighlight || !sectionRef.current || layout === "embedded")
-      return;
-    sectionRef.current.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, [revealHighlight, layout]);
 
   const revealShell =
     revealHighlight
@@ -137,6 +127,9 @@ export function SkillBlock({
   return (
     <section
       ref={sectionRef}
+      id={
+        layout === "page" ? `eval-skill-${competency.id}` : undefined
+      }
       className={`${scrollMt} overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low ${shellShadow} transition-opacity duration-300 ${revealShell} ${revealDim}`}
     >
       <div
@@ -145,21 +138,13 @@ export function SkillBlock({
         <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
           <button
             type="button"
-            disabled={collapseLocked}
             aria-expanded={showBody}
             aria-controls={bodyId}
             title={
-              collapseLocked
-                ? "Expanded while this skill is the live focus"
-                : showBody
-                  ? "Collapse competency"
-                  : "Expand competency"
+              showBody ? "Collapse competency" : "Expand competency"
             }
-            onClick={() => {
-              if (collapseLocked) return;
-              setExpanded((e) => !e);
-            }}
-            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/25 text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-surface-bright hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 sm:mt-0"
+            onClick={() => setExpanded((e) => !e)}
+            className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/25 text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-surface-bright hover:text-on-surface sm:mt-0"
           >
             <span className="material-symbols-outlined text-xl">
               {showBody ? "expand_less" : "expand_more"}

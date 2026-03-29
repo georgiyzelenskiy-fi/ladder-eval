@@ -3,9 +3,17 @@
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { SkillBlock } from "@/components/eval/SkillBlock";
+import { useEvalMatrixChromeSetter } from "@/components/eval/EvalMatrixChromeContext";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import { useMutation, useQuery } from "convex/react";
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type SessionPhase = "preparation" | "live" | "finished";
 
@@ -14,8 +22,13 @@ type Props = {
   phase: SessionPhase;
   /** During live phase, manager-driven “current” competency for sequential reveal. */
   activeRevealSkillId?: string | undefined;
+  /** Live-eval wizard skill (initial scroll + optional highlight when live). */
+  liveEvalSkillId?: string | undefined;
+  /** Seeds the subject dropdown once when the matrix first gets a roster (not updated when manager changes). */
+  liveEvalSubjectId?: Id<"users"> | undefined;
   myUserId: Id<"users">;
   roster: Doc<"users">[];
+  signedInName: string;
 };
 
 function evaluationFor(
@@ -107,36 +120,105 @@ export function EvaluatorMatrix({
   sessionId,
   phase,
   activeRevealSkillId,
+  liveEvalSkillId,
+  liveEvalSubjectId,
   myUserId,
   roster,
+  signedInName,
 }: Props) {
   const updateCheckboxes = useMutation(api.evaluations.updateCheckboxes);
+  const setMatrixChrome = useEvalMatrixChromeSetter();
   const myRows = useQuery(api.evaluations.listEvaluationsForEvaluator, {
     sessionId,
     evaluatorId: myUserId,
   });
 
-  const [subjectId, setSubjectId] = useState<Id<"users"> | null>(null);
+  const [baselineSubjectId, setBaselineSubjectId] =
+    useState<Id<"users"> | null>(null);
 
-  const effectiveSubject =
-    subjectId && roster.some((s) => s._id === subjectId)
-      ? subjectId
-      : roster[0]?._id ?? null;
+  const [selectedSubjectId, setSelectedSubjectId] =
+    useState<Id<"users"> | null>(null);
+
+  useLayoutEffect(() => {
+    if (baselineSubjectId !== null || roster.length === 0) return;
+    const seed =
+      liveEvalSubjectId != null &&
+      roster.some((s) => s._id === liveEvalSubjectId)
+        ? liveEvalSubjectId
+        : roster[0]._id;
+    // One-time snapshot when roster first appears; later Convex updates to
+    // liveEvalSubjectId must not move the evaluator off their row (product UX).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync baseline from props once
+    setBaselineSubjectId(seed);
+  }, [roster, liveEvalSubjectId, baselineSubjectId]);
+
+  const effectiveSubject = useMemo(() => {
+    if (selectedSubjectId && roster.some((s) => s._id === selectedSubjectId)) {
+      return selectedSubjectId;
+    }
+    if (roster.length === 0) return null;
+    return baselineSubjectId ?? roster[0]._id;
+  }, [selectedSubjectId, roster, baselineSubjectId]);
 
   const readOnly = phase === "finished";
 
+  const focusSkillId = useMemo(() => {
+    if (
+      activeRevealSkillId &&
+      MATRIX_COMPETENCIES.some((c) => c.id === activeRevealSkillId)
+    ) {
+      return activeRevealSkillId;
+    }
+    if (
+      liveEvalSkillId &&
+      MATRIX_COMPETENCIES.some((c) => c.id === liveEvalSkillId)
+    ) {
+      return liveEvalSkillId;
+    }
+    return undefined;
+  }, [activeRevealSkillId, liveEvalSkillId]);
+
   const revealFocusActive = useMemo(() => {
-    if (phase !== "live" || !activeRevealSkillId) return false;
-    return MATRIX_COMPETENCIES.some((c) => c.id === activeRevealSkillId);
-  }, [phase, activeRevealSkillId]);
+    if (phase !== "live" || !focusSkillId) return false;
+    return true;
+  }, [phase, focusSkillId]);
 
   const focusedCompetency = useMemo(
     () =>
-      revealFocusActive && activeRevealSkillId
-        ? MATRIX_COMPETENCIES.find((c) => c.id === activeRevealSkillId)
+      revealFocusActive && focusSkillId
+        ? MATRIX_COMPETENCIES.find((c) => c.id === focusSkillId)
         : undefined,
-    [revealFocusActive, activeRevealSkillId],
+    [revealFocusActive, focusSkillId],
   );
+
+  const focusScrollDoneRef = useRef(false);
+  useLayoutEffect(() => {
+    if (
+      focusScrollDoneRef.current ||
+      !focusSkillId ||
+      myRows === undefined
+    ) {
+      return;
+    }
+    const el = document.getElementById(`eval-skill-${focusSkillId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    focusScrollDoneRef.current = true;
+  }, [focusSkillId, myRows]);
+
+  useEffect(() => {
+    if (roster.length === 0 || !effectiveSubject) {
+      setMatrixChrome(null);
+      return;
+    }
+    setMatrixChrome({
+      roster,
+      selectedSubjectId: effectiveSubject,
+      onSubjectChange: setSelectedSubjectId,
+      signedInName,
+    });
+    return () => setMatrixChrome(null);
+  }, [effectiveSubject, roster, setMatrixChrome, signedInName]);
 
   const onSetCheckpoints = useCallback(
     async (skillId: string, updates: Record<string, boolean>) => {
@@ -223,29 +305,6 @@ export function EvaluatorMatrix({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <label className="flex w-full max-w-md flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Subject
-          <select
-            className="mt-1 w-full cursor-pointer border-0 border-b border-outline-variant bg-surface-container-low py-2.5 text-sm font-normal text-on-surface focus:border-primary focus:outline-none focus:ring-0 rounded-sm"
-            value={effectiveSubject ?? ""}
-            onChange={(e) =>
-              setSubjectId(e.target.value as Id<"users">)
-            }
-          >
-            {roster.map((u) => (
-              <option
-                key={u._id}
-                value={u._id}
-                className="bg-surface-container text-on-surface"
-              >
-                {u.name} ({u.slug})
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
       <MatrixWorkspaceHero />
 
       {myRows === undefined ? (
@@ -259,7 +318,7 @@ export function EvaluatorMatrix({
               row={evaluationFor(myRows, effectiveSubject!, comp.id)}
               readOnly={readOnly}
               revealHighlight={
-                revealFocusActive && activeRevealSkillId === comp.id
+                revealFocusActive && focusSkillId === comp.id
               }
               dimForReveal={revealFocusActive}
               onSetCheckpoints={onSetCheckpoints}

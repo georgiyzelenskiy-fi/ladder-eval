@@ -182,35 +182,28 @@ export function EvalJoinClient({ slug, sessionSlug }: Props) {
 
   return (
     <div className="flex w-full max-w-6xl flex-col gap-8">
-      <header>
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">
-          Evaluator
-        </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-on-surface">
-          Join as{" "}
-          <code className="rounded-sm bg-surface-container-high px-2 py-0.5 font-mono text-lg text-primary">
-            {slug}
-          </code>
-        </h2>
-        {sessionSlug !== DEFAULT_SESSION_SLUG ? (
-          <p className="mt-2 text-xs text-on-surface-variant">
-            Session{" "}
-            <code className="font-mono text-on-surface">{sessionSlug}</code>
+      {!me ? (
+        <header>
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">
+            Evaluator
           </p>
-        ) : null}
-      </header>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-on-surface">
+            Join as{" "}
+            <code className="rounded-sm bg-surface-container-high px-2 py-0.5 font-mono text-lg text-primary">
+              {slug}
+            </code>
+          </h2>
+          {sessionSlug !== DEFAULT_SESSION_SLUG ? (
+            <p className="mt-2 text-xs text-on-surface-variant">
+              Session{" "}
+              <code className="font-mono text-on-surface">{sessionSlug}</code>
+            </p>
+          ) : null}
+        </header>
+      ) : null}
 
       {me ? (
         <>
-          <div className="max-w-md rounded-xl border border-outline-variant/15 bg-surface-container px-4 py-4 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.35)]">
-            <p className="text-sm text-on-surface-variant">Signed in as</p>
-            <p className="mt-1 text-lg font-semibold text-on-surface">
-              {me.name}
-            </p>
-            <p className="mt-3 text-xs text-on-surface-variant">
-              Your evaluator id is stored in this browser (localStorage).
-            </p>
-          </div>
           {sessionId ? (
             roster === undefined ? (
               <p className="text-sm text-on-surface-variant">
@@ -221,8 +214,11 @@ export function EvalJoinClient({ slug, sessionSlug }: Props) {
                 sessionId={sessionId}
                 phase={session.phase}
                 activeRevealSkillId={session.activeRevealSkillId}
+                liveEvalSkillId={session.liveEvalSkillId}
+                liveEvalSubjectId={session.liveEvalSubjectId}
                 myUserId={me._id}
                 roster={roster}
+                signedInName={me.name}
               />
             )
           ) : null}

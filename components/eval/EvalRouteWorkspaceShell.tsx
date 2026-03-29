@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import { EvalMatrixChromeProvider } from "./EvalMatrixChromeContext";
 import { EvalWorkspaceShell } from "./EvalWorkspaceShell";
 import { useRoomLinkSessionSlug } from "./useRoomLinkSessionSlug";
 
@@ -14,9 +15,11 @@ function EvalRouteWorkspaceShellInner({
 }) {
   const sessionSlug = useRoomLinkSessionSlug();
   return (
-    <EvalWorkspaceShell slug={slug} sessionSlug={sessionSlug}>
-      {children}
-    </EvalWorkspaceShell>
+    <EvalMatrixChromeProvider>
+      <EvalWorkspaceShell slug={slug} sessionSlug={sessionSlug}>
+        {children}
+      </EvalWorkspaceShell>
+    </EvalMatrixChromeProvider>
   );
 }
 
