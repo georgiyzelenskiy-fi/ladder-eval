@@ -24,7 +24,7 @@
 |------|--------|
 | **Subject switcher always reachable** | **Partial (2026-03):** Subject `<select>` in sticky `EvalWorkspaceShell` header (`EvalMatrixChromeContext`); initial option seeded once from `liveEvalSubjectId` (or first roster); evaluator can change anytime; manager updates do not override. |
 | **Live session awareness** | **Partial (2026-03):** Live-phase dim + ring on `activeRevealSkillId` ?? `liveEvalSkillId`; **one-time** scroll to that block on matrix load (not on later manager skill changes); focused block stays collapsible. |
-| **First-time complexity** | Overall look is acceptable; the full matrix can feel **overwhelming** at first. Add **progressive disclosure**: e.g. collapsed skill groups, a short guided first visit, “start here” for one subject, or a compact vs expanded mode. |
+| **First-time complexity** | **Partial (2026-03):** `SkillBlock` uses **per-level progressive disclosure** — levels L1–L5 are a full-width column; each level collapses to a header-only row with **read-only** top-level criterion summary (aligned with expanded parent `check_circle` / `circle` icons). **Still improve:** guided first visit, “start here” for one subject, compact vs expanded mode for whole matrix, other skill-group patterns. |
 
 ---
 
@@ -71,6 +71,7 @@
 | Non-manager UI | `LiveEvaluationClient.tsx`, `canManage` / `useRegisteredEvaluatorId`, room layout |
 | Skill grouping / session scope | `lib/*-skills-rubric.ts`, matrix competency list assembly, optional `sessions` fields |
 | Eval sticky subject + live emphasis | `EvaluatorMatrix.tsx` (or equivalent), `session.activeRevealSkillId` / live-eval bundle subscription |
+| SkillBlock level panels (collapse + summary) | `components/eval/SkillBlock.tsx` (`parentCheckpointOn`, per-level open state) |
 | Auth | `convex/users.ts`, join flows, env secrets, future IdP |
 | Charts | new route or `developer-dashboard` evolution, `lib/scoring.ts` aggregates |
 

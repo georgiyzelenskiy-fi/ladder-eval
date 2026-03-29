@@ -29,6 +29,50 @@ function competencyIcon(id: string) {
   return COMPETENCY_ICONS[id] ?? "widgets";
 }
 
+/** Met state for the top-level “point” row (collapsed summary uses this; nested = all children). */
+function parentCheckpointOn(
+  group: CheckpointDisplayGroup,
+  checked: Set<string>,
+): boolean {
+  const hasNested = group.nested.length > 0;
+  return hasNested
+    ? group.nested.every((n) => checked.has(n.id))
+    : checked.has(group.parent.id);
+}
+
+/** Collapsed level strip: same glyph + sizing as expanded parent row (`check_circle` / `circle`). */
+function LevelSummaryPointChip({
+  met,
+  pointIndex,
+}: {
+  met: boolean;
+  pointIndex: number;
+}) {
+  const label = met
+    ? `Point ${pointIndex + 1}, met`
+    : `Point ${pointIndex + 1}, not met`;
+  return (
+    <span className="inline-flex shrink-0 items-center" title={label}>
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={met}
+        disabled
+        tabIndex={-1}
+        aria-label={label}
+      />
+      <span
+        aria-hidden
+        className={`material-symbols-outlined shrink-0 text-[16px] leading-none ${
+          met ? "fill-on text-primary" : "text-on-surface-variant"
+        }`}
+      >
+        {met ? "check_circle" : "circle"}
+      </span>
+    </span>
+  );
+}
+
 export function SkillBlock({
   competency,
   row,
@@ -107,6 +151,9 @@ export function SkillBlock({
     () => row?.rationale ?? "",
   );
   const [expanded, setExpanded] = useState(true);
+  const [levelPanelsOpen, setLevelPanelsOpen] = useState<
+    Record<number, boolean>
+  >(() => ({ 1: true, 2: true, 3: true, 4: true, 5: true }));
   const bodyId = useId();
   const showBody = expanded;
 
@@ -232,33 +279,87 @@ export function SkillBlock({
             </div>
           ) : null}
 
-          <div className="grid gap-1 bg-surface-container-lowest p-1 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="flex w-full flex-col gap-2 bg-surface-container-lowest p-2 sm:p-3">
         {[1, 2, 3, 4, 5].map((level) => {
           const groupsAt = groupsByLevel.get(level) ?? [];
           const rub = competency.levels.find((l) => l.number === level);
           const emphasize = score.baseLevel === level;
+          const levelLabel = rub ? rub.label : `L${level}`;
+          const levelOpen = levelPanelsOpen[level] ?? true;
           return (
             <div
               key={level}
-              className={`space-y-3 p-4 ${
+              className={`flex w-full flex-col overflow-hidden rounded-xl border border-outline-variant/15 ${
                 emphasize
                   ? "bg-surface-container-high"
                   : "bg-surface-container/50"
               }`}
             >
-              <p
-                className={`mb-2 block text-center text-[9px] font-black uppercase tracking-[0.2em] ${
-                  emphasize ? "text-primary" : "text-on-surface-variant"
+              <div
+                className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 ${
+                  levelOpen
+                    ? "border-b border-outline-variant/15"
+                    : ""
                 }`}
               >
-                {rub ? rub.label : `L${level}`}
-              </p>
-              <div className="space-y-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    aria-expanded={levelOpen}
+                    aria-label={
+                      levelOpen
+                        ? `Collapse ${levelLabel}`
+                        : `Expand ${levelLabel}`
+                    }
+                    onClick={() =>
+                      setLevelPanelsOpen((prev) => ({
+                        ...prev,
+                        [level]: !levelOpen,
+                      }))
+                    }
+                    className="flex shrink-0 items-center justify-center rounded-lg border border-outline-variant/20 p-1 text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-surface-bright hover:text-on-surface"
+                  >
+                    <span className="material-symbols-outlined text-xl leading-none">
+                      {levelOpen ? "expand_less" : "expand_more"}
+                    </span>
+                  </button>
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-[0.12em] sm:text-[11px] ${
+                      emphasize
+                        ? "text-primary"
+                        : "text-on-surface"
+                    }`}
+                  >
+                    {levelLabel}
+                  </span>
+                </div>
+                {!levelOpen ? (
+                  <div
+                    className="flex flex-wrap items-center gap-2 sm:gap-2.5"
+                    role="group"
+                    aria-label={`${levelLabel} criteria summary`}
+                  >
+                    {groupsAt.length === 0 ? (
+                      <span className="text-[10px] text-on-surface-variant/60">
+                        —
+                      </span>
+                    ) : (
+                      groupsAt.map((group, pointIndex) => (
+                        <LevelSummaryPointChip
+                          key={group.parent.id}
+                          met={parentCheckpointOn(group, checked)}
+                          pointIndex={pointIndex}
+                        />
+                      ))
+                    )}
+                  </div>
+                ) : null}
+              </div>
+              {levelOpen ? (
+              <div className="space-y-2 p-3 sm:p-4">
                 {groupsAt.map((group) => {
                   const hasNested = group.nested.length > 0;
-                  const parentOn = hasNested
-                    ? group.nested.every((n) => checked.has(n.id))
-                    : checked.has(group.parent.id);
+                  const parentOn = parentCheckpointOn(group, checked);
                   const anyNestedOn =
                     hasNested &&
                     group.nested.some((n) => checked.has(n.id));
@@ -387,6 +488,7 @@ export function SkillBlock({
                   </p>
                 ) : null}
               </div>
+              ) : null}
             </div>
           );
         })}
