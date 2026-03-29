@@ -1,3 +1,8 @@
+import {
+  advanceLiveEvalRevealCursor,
+  computePeerRevealOrder,
+  filterRandomizeSubjectCandidates,
+} from "../lib/live-eval-session";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
@@ -27,10 +32,15 @@ async function defaultPeerRevealOrder(
     .query("users")
     .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
     .collect();
-  return roster
-    .filter((u) => u.role === "evaluator" && u._id !== subjectId)
-    .sort((a, b) => a.slug.localeCompare(b.slug))
-    .map((u) => u._id);
+  const order = computePeerRevealOrder(
+    roster.map((u) => ({
+      userId: u._id,
+      role: u.role,
+      slug: u.slug,
+    })),
+    subjectId,
+  );
+  return order as Id<"users">[];
 }
 
 export const getSession = query({
@@ -189,14 +199,17 @@ export const randomizeLiveEvalSubject = mutation({
       marks.filter((m) => m.skillId === skillId).map((m) => m.subjectId),
     );
     const currentSubjectId = session.liveEvalSubjectId;
-    const candidates = evaluators.filter(
-      (u) =>
-        !calibratedSubjectIds.has(u._id) &&
-        (currentSubjectId === undefined || u._id !== currentSubjectId),
+    const candidateIds = filterRandomizeSubjectCandidates(
+      evaluators.map((u) => u._id),
+      calibratedSubjectIds,
+      currentSubjectId,
     );
-    if (candidates.length === 0) return;
+    if (candidateIds.length === 0) return;
 
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const pickId =
+      candidateIds[Math.floor(Math.random() * candidateIds.length)]!;
+    const pick = evaluators.find((u) => u._id === pickId);
+    if (!pick) return;
     const order = await defaultPeerRevealOrder(ctx, sessionId, pick._id);
     await ctx.db.patch(sessionId, {
       liveEvalSubjectId: pick._id,
@@ -214,12 +227,14 @@ export const liveEvalRevealNext = mutation({
   handler: async (ctx, { sessionId, managerKey }) => {
     assertManagerKey(managerKey);
     const session = await ctx.db.get(sessionId);
-    if (!session?.liveEvalRevealOrder?.length) return;
+    if (!session) return;
+    const order = session.liveEvalRevealOrder;
+    if (!order?.length) return;
     const cur = session.liveEvalRevealCursor ?? 0;
-    const max = session.liveEvalRevealOrder.length;
-    if (cur >= max) return;
+    const next = advanceLiveEvalRevealCursor(cur, order.length);
+    if (next === undefined) return;
     await ctx.db.patch(sessionId, {
-      liveEvalRevealCursor: cur + 1,
+      liveEvalRevealCursor: next,
     });
   },
 });
