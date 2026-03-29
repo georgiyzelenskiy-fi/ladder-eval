@@ -10,15 +10,14 @@ export type LiveEvalRosterEntry = {
 };
 
 /**
- * Peer reveal queue: evaluators other than the subject, ordered by slug (localeCompare).
- * Post-MVP may include the subject in the queue; update this function and tests together.
+ * Live reveal queue: every **evaluator** (including the current subject’s self row),
+ * stable order by slug (`localeCompare`). Peers and self all get a reveal turn for calibration.
  */
 export function computePeerRevealOrder(
   roster: readonly LiveEvalRosterEntry[],
-  subjectId: string,
 ): string[] {
   return roster
-    .filter((u) => u.role === "evaluator" && u.userId !== subjectId)
+    .filter((u) => u.role === "evaluator")
     .sort((a, b) => a.slug.localeCompare(b.slug))
     .map((u) => u.userId);
 }

@@ -17,22 +17,22 @@ function roster(
 }
 
 describe("computePeerRevealOrder", () => {
-  it("excludes subject and non-evaluators, sorts evaluators by slug", () => {
+  it("includes all evaluators (including any subject), excludes manager, sorts by slug", () => {
     const r = roster([
       { id: "m1", role: "manager", slug: "manager" },
       { id: "s1", role: "evaluator", slug: "zebra" },
       { id: "s2", role: "evaluator", slug: "alpha" },
       { id: "s3", role: "evaluator", slug: "beta" },
     ]);
-    expect(computePeerRevealOrder(r, "s2")).toEqual(["s3", "s1"]);
+    expect(computePeerRevealOrder(r)).toEqual(["s2", "s3", "s1"]);
   });
 
-  it("returns empty when subject is the only evaluator", () => {
+  it("returns single evaluator when they are the only one (self-only queue)", () => {
     const r = roster([
       { id: "m1", role: "manager", slug: "m" },
       { id: "only", role: "evaluator", slug: "only" },
     ]);
-    expect(computePeerRevealOrder(r, "only")).toEqual([]);
+    expect(computePeerRevealOrder(r)).toEqual(["only"]);
   });
 
   it("uses localeCompare for slug ordering", () => {
@@ -40,7 +40,16 @@ describe("computePeerRevealOrder", () => {
       { id: "a", role: "evaluator", slug: "B" },
       { id: "b", role: "evaluator", slug: "a" },
     ]);
-    expect(computePeerRevealOrder(r, "subj")).toEqual(["b", "a"]);
+    expect(computePeerRevealOrder(r)).toEqual(["b", "a"]);
+  });
+
+  it("returns empty for empty roster", () => {
+    expect(computePeerRevealOrder([])).toEqual([]);
+  });
+
+  it("returns empty when there are no evaluators (manager-only)", () => {
+    const r = roster([{ id: "m1", role: "manager", slug: "mgr" }]);
+    expect(computePeerRevealOrder(r)).toEqual([]);
   });
 });
 

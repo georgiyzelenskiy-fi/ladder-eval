@@ -12,7 +12,7 @@
 
 | Item | Notes |
 |------|--------|
-| **Self in peer reveal** | Include **self-evaluation** in the live flow: the person being evaluated should also appear in the reveal queue (or an explicit self step). Today peer order excludes the subject (`defaultPeerRevealOrder`); product intent is **not** to filter out the evaluatee—peers *and* self participate in calibration discussion. |
+| **Self in peer reveal** | **Done:** reveal order is all evaluators by slug (`computePeerRevealOrder`), including the subject’s self row; UI labels self in the queue. |
 | **Non-manager UX** | Disabled manager controls are a quick MVP pattern. **Improve:** hide chrome entirely for evaluators, or replace with **dev-appropriate** actions (read-only context, “your turn” hints, deep links) instead of greyed-out buttons. |
 | **Hard vs soft grouping** | Support sessions that evaluate **only hard skills** or **only soft skills**: group competencies in the UI/session config so the matrix and live-eval tabs match the intended scope without scrolling past irrelevant blocks. |
 
@@ -67,7 +67,7 @@
 
 | Theme | Likely touchpoints |
 |-------|-------------------|
-| Live peer order + self | `convex/session.ts` (`defaultPeerRevealOrder`, `setLiveEvalSubject`, `randomizeLiveEvalSubject`), `LiveEvaluationClient.tsx` |
+| Live peer order + self | `lib/live-eval-session.ts` (`computePeerRevealOrder`), `convex/session.ts` (`defaultLiveEvalRevealOrder`, `setLiveEvalSubject`, `randomizeLiveEvalSubject`), `LiveEvaluationClient.tsx` |
 | Non-manager UI | `LiveEvaluationClient.tsx`, `canManage` branches, room layout |
 | Skill grouping / session scope | `lib/*-skills-rubric.ts`, matrix competency list assembly, optional `sessions` fields |
 | Eval sticky subject + live emphasis | `EvaluatorMatrix.tsx` (or equivalent), `session.activeRevealSkillId` / live-eval bundle subscription |
