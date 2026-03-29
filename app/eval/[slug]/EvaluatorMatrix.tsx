@@ -116,17 +116,12 @@ export function EvaluatorMatrix({
     evaluatorId: myUserId,
   });
 
-  const subjects = useMemo(
-    () => roster.filter((u) => u._id !== myUserId),
-    [roster, myUserId],
-  );
-
   const [subjectId, setSubjectId] = useState<Id<"users"> | null>(null);
 
   const effectiveSubject =
-    subjectId && subjects.some((s) => s._id === subjectId)
+    subjectId && roster.some((s) => s._id === subjectId)
       ? subjectId
-      : subjects[0]?._id ?? null;
+      : roster[0]?._id ?? null;
 
   const readOnly = phase === "finished";
 
@@ -203,7 +198,7 @@ export function EvaluatorMatrix({
             text: "Session finished — matrix is read-only.",
           };
 
-  if (subjects.length === 0) {
+  if (roster.length === 0) {
     return (
       <p className="text-sm text-on-surface-variant">
         No one else is on the roster yet. When teammates join, pick them here to
@@ -238,7 +233,7 @@ export function EvaluatorMatrix({
               setSubjectId(e.target.value as Id<"users">)
             }
           >
-            {subjects.map((u) => (
+            {roster.map((u) => (
               <option
                 key={u._id}
                 value={u._id}

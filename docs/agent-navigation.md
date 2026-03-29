@@ -47,6 +47,7 @@
 | Post-MVP features, backlog after MVP ship, battle-tested feedback | [post-mvp-roadmap.md](./post-mvp-roadmap.md) · [design-document.md §9](./design-document.md) |
 | Stack choice, Convex schema/functions, MVP auth, build/deploy commands | [technology.md](./technology.md) |
 | Session slug, `?session=`, Team setup (`/manage`), roster, shareable evaluator URLs (`users.seedRoster` optional bulk) | [design-document.md §6.3](./design-document.md) · [technology.md §2](./technology.md) · [technology.md §5](./technology.md) · `app/manage/` |
+| Live calibration (`/room/live-evaluation`), manager `?k=` gate, evaluator follow-along without key | [design-document.md §6.3](./design-document.md) · [technology.md §5](./technology.md) · `lib/use-registered-evaluator-id.ts`, `LiveEvaluationClient.tsx` |
 | Visual language, surface hierarchy, “no-line” layout, editorial density, chart line weights | [DESIGN.md](./DESIGN.md) |
 | Concrete hex/theme, app shell dimensions, heatmap/radar/checkbox styling, Tailwind/Material Symbols for build | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) |
 | Evaluator skill matrix UI (checkbox tree, manual mark, rationale) — reference implementation | [skill-evaluation.html](./skill-evaluation.html) |

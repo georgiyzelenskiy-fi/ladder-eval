@@ -10,6 +10,7 @@ import {
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import { competencyToCheckpoints } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
+import { useRegisteredEvaluatorId } from "@/lib/use-registered-evaluator-id";
 import { useMutation, useQuery } from "convex/react";
 import {
   useCallback,
@@ -118,6 +119,15 @@ export function LiveEvaluationClient({
   const upsertCalibrationMark = useMutation(
     api.liveEvaluation.upsertCalibrationMark,
   );
+
+  const registeredEvaluatorId = useRegisteredEvaluatorId(
+    sessionSlug,
+    bundle?.roster,
+  );
+  const isRegisteredEvaluatorView = registeredEvaluatorId != null;
+  const visitorNeedsManagerKey =
+    managerGateActive && !canManage && !isRegisteredEvaluatorView;
+  const showManagerControls = canManage;
 
   const matrixSectionRef = useRef<HTMLElement | null>(null);
 
@@ -352,19 +362,31 @@ export function LiveEvaluationClient({
       {!canManage ? (
         <div
           role="status"
-          className="shrink-0 border-b border-warning/25 bg-warning-muted/15 px-4 py-2.5 text-center text-[11px] leading-snug text-on-surface"
+          className={`shrink-0 border-b px-4 py-2.5 text-center text-[11px] leading-snug text-on-surface ${
+            visitorNeedsManagerKey
+              ? "border-warning/25 bg-warning-muted/15"
+              : "border-outline-variant/20 bg-surface-container-high/80"
+          }`}
         >
-          <span className="font-semibold text-warning">View only.</span> The
-          manager controls skill focus, subject, reveal order, and baseline
-          commits. Open once with{" "}
-          <code className="rounded bg-surface-container-high px-1 font-mono text-[10px]">
-            ?k=…
-          </code>{" "}
-          while <code className="font-mono text-[10px]">MANAGER_ACCESS_KEY</code>{" "}
-          is set — this browser stores the key for later visits without the query
-          string. The sidebar &quot;Live calibration&quot; link adds{" "}
-          <code className="font-mono text-[10px]">?k=</code> automatically when a
-          key is stored. Mirror the same secret in Convex.
+          {visitorNeedsManagerKey ? (
+            <>
+              <span className="font-semibold text-warning">Manager key required</span>{" "}
+              to drive this screen. Open once with{" "}
+              <code className="rounded bg-surface-container-high px-1 font-mono text-[10px]">
+                ?k=…
+              </code>{" "}
+              matching <code className="font-mono text-[10px]">MANAGER_ACCESS_KEY</code>
+              — this browser remembers it. Sidebar &quot;Live calibration&quot; adds{" "}
+              <code className="font-mono text-[10px]">?k=</code> when stored. Use the
+              same value in Convex env.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-on-surface">Follow the session.</span>{" "}
+              The manager chooses skill, subject, reveal order, and records the team
+              baseline after discussion.
+            </>
+          )}
         </div>
       ) : null}
 
@@ -398,32 +420,43 @@ export function LiveEvaluationClient({
             </div>
           </div>
           <div className="flex gap-6 overflow-x-auto pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {MATRIX_COMPETENCIES.map((c) => {
-              const active = liveSkillId === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  disabled={!canManage || busy !== null}
-                  onClick={() =>
-                    run("skill", () =>
-                      setLiveEvalSkill({
-                        sessionId: session._id,
-                        skillId: c.id,
-                        managerKey: effectiveManagerKey,
-                      }),
-                    )
-                  }
-                  className={`shrink-0 whitespace-nowrap px-2 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                    active
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-on-surface-variant hover:text-on-surface"
-                  } disabled:opacity-40`}
-                >
-                  {c.name}
-                </button>
-              );
-            })}
+            {showManagerControls ? (
+              MATRIX_COMPETENCIES.map((c) => {
+                const active = liveSkillId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      run("skill", () =>
+                        setLiveEvalSkill({
+                          sessionId: session._id,
+                          skillId: c.id,
+                          managerKey: effectiveManagerKey,
+                        }),
+                      )
+                    }
+                    className={`shrink-0 whitespace-nowrap px-2 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                      active
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-on-surface-variant hover:text-on-surface"
+                    } disabled:opacity-40`}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="flex flex-col gap-1 py-2">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  Current competency
+                </span>
+                <span className="text-sm font-black uppercase tracking-tight text-primary">
+                  {liveSkillName}
+                </span>
+              </div>
+            )}
           </div>
         </nav>
 
@@ -484,65 +517,66 @@ export function LiveEvaluationClient({
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="sr-only" htmlFor="live-eval-subject">
-                Subject
-              </label>
-              <select
-                id="live-eval-subject"
-                className="max-w-[220px] rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface"
-                value={liveSubjectId ?? ""}
-                disabled={
-                  !canManage || busy !== null || evaluatees.length === 0
-                }
-                onChange={(e) => {
-                  const v = e.target.value as Id<"users">;
-                  if (!v) return;
-                  run("subject", () =>
-                    setLiveEvalSubject({
-                      sessionId: session._id,
-                      subjectId: v,
-                      managerKey: effectiveManagerKey,
-                    }),
-                  );
-                }}
-              >
-                <option value="">Select subject…</option>
-                {evaluatees.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name || u.slug}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={
-                  !canManage || busy !== null || evaluatees.length === 0
-                }
-                onClick={() =>
-                  run("rand-subj", () =>
-                    randomizeLiveEvalSubject({
-                      sessionId: session._id,
-                      managerKey: effectiveManagerKey,
-                    }),
-                  )
-                }
-                className="flex items-center gap-2 rounded-lg border border-outline-variant/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface disabled:opacity-40"
-              >
-                <span className="material-symbols-outlined text-sm">shuffle</span>
-                Randomize subject
-              </button>
-              <div
-                className="hidden h-10 w-px bg-outline-variant/30 sm:block"
-                aria-hidden
-              />
-            </div>
+            {showManagerControls ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="sr-only" htmlFor="live-eval-subject">
+                  Subject
+                </label>
+                <select
+                  id="live-eval-subject"
+                  className="max-w-[220px] rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface"
+                  value={liveSubjectId ?? ""}
+                  disabled={busy !== null || evaluatees.length === 0}
+                  onChange={(e) => {
+                    const v = e.target.value as Id<"users">;
+                    if (!v) return;
+                    run("subject", () =>
+                      setLiveEvalSubject({
+                        sessionId: session._id,
+                        subjectId: v,
+                        managerKey: effectiveManagerKey,
+                      }),
+                    );
+                  }}
+                >
+                  <option value="">Select subject…</option>
+                  {evaluatees.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name || u.slug}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={busy !== null || evaluatees.length === 0}
+                  onClick={() =>
+                    run("rand-subj", () =>
+                      randomizeLiveEvalSubject({
+                        sessionId: session._id,
+                        managerKey: effectiveManagerKey,
+                      }),
+                    )
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-outline-variant/30 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface disabled:opacity-40"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    shuffle
+                  </span>
+                  Randomize subject
+                </button>
+                <div
+                  className="hidden h-10 w-px bg-outline-variant/30 sm:block"
+                  aria-hidden
+                />
+              </div>
+            ) : null}
           </div>
 
           {!liveSubjectId ? (
             <p className="text-sm text-on-surface-variant">
-              Add evaluators in Team setup, then pick a subject to start the reveal
-              queue.
+              {showManagerControls
+                ? "Add evaluators in Team setup, then pick a subject to start the reveal queue."
+                : "Waiting for the manager to choose a subject for the reveal queue."}
             </p>
           ) : (
             <div className="grid grid-cols-12 gap-8">
@@ -556,33 +590,41 @@ export function LiveEvaluationClient({
                       The reveal queue
                     </h3>
                   </div>
-                  <button
-                    type="button"
-                    disabled={
-                      !canManage ||
-                      busy !== null ||
-                      revealOrder.length === 0 ||
-                      allPeersRevealed
-                    }
-                    onClick={() =>
-                      run("reveal", () =>
-                        liveEvalRevealNext({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
+                  {showManagerControls ? (
+                    <button
+                      type="button"
+                      disabled={
+                        busy !== null ||
+                        revealOrder.length === 0 ||
+                        allPeersRevealed
+                      }
+                      onClick={() =>
+                        run("reveal", () =>
+                          liveEvalRevealNext({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="flex items-center gap-2 rounded-lg bg-primary-container px-6 py-2.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_15px_-3px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        visibility
+                      </span>
+                      Reveal next (
+                      {revealOrder.length === 0
+                        ? "0/0"
+                        : `${revealCursor}/${revealOrder.length}`}
                       )
-                    }
-                    className="flex items-center gap-2 rounded-lg bg-primary-container px-6 py-2.5 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_15px_-3px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      visibility
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                      Progress{" "}
+                      {revealOrder.length === 0
+                        ? "0/0"
+                        : `${revealCursor}/${revealOrder.length}`}
                     </span>
-                    Reveal next (
-                    {revealOrder.length === 0
-                      ? "0/0"
-                      : `${revealCursor}/${revealOrder.length}`}
-                    )
-                  </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -674,149 +716,204 @@ export function LiveEvaluationClient({
                     control room.
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">
-                  <button
-                    type="button"
-                    disabled={!canManage || busy !== null || revealCursor === 0}
-                    onClick={() =>
-                      run("reset-reveal", () =>
-                        resetLiveEvalReveal({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
-                      )
-                    }
-                    className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
-                  >
-                    Reset reveal
-                  </button>
-                  <span className="text-outline-variant/40" aria-hidden>
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    disabled={
-                      !canManage || busy !== null || revealOrder.length < 2
-                    }
-                    onClick={() =>
-                      run("shuffle", () =>
-                        shuffleLiveEvalOrder({
-                          sessionId: session._id,
-                          managerKey: effectiveManagerKey,
-                        }),
-                      )
-                    }
-                    className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
-                  >
-                    Shuffle order
-                  </button>
-                </div>
+                {showManagerControls ? (
+                  <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">
+                    <button
+                      type="button"
+                      disabled={busy !== null || revealCursor === 0}
+                      onClick={() =>
+                        run("reset-reveal", () =>
+                          resetLiveEvalReveal({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
+                    >
+                      Reset reveal
+                    </button>
+                    <span className="text-outline-variant/40" aria-hidden>
+                      ·
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy !== null || revealOrder.length < 2}
+                      onClick={() =>
+                        run("shuffle", () =>
+                          shuffleLiveEvalOrder({
+                            sessionId: session._id,
+                            managerKey: effectiveManagerKey,
+                          }),
+                        )
+                      }
+                      className="text-on-surface-variant underline decoration-outline-variant/50 underline-offset-2 hover:text-on-surface disabled:opacity-40"
+                    >
+                      Shuffle order
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
-                <div className="flex flex-col rounded-xl border-2 border-primary/40 bg-surface-container-highest/90 p-6 shadow-2xl backdrop-blur-md">
-                  <div className="mb-6 flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded bg-primary/20">
-                      <span className="material-symbols-outlined text-sm text-primary">
-                        gavel
+                {showManagerControls ? (
+                  <div className="flex flex-col rounded-xl border-2 border-primary/40 bg-surface-container-highest/90 p-6 shadow-2xl backdrop-blur-md">
+                    <div className="mb-6 flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded bg-primary/20">
+                        <span className="material-symbols-outlined text-sm text-primary">
+                          gavel
+                        </span>
                       </span>
-                    </span>
-                    <h3 className="text-sm font-black uppercase tracking-tight text-on-surface">
-                      Final calibration
-                    </h3>
-                  </div>
-                  <p className="mb-8 text-xs leading-relaxed text-on-surface-variant">
-                    Finalize{" "}
-                    <span className="font-semibold text-on-surface">
-                      {nameByUserId.get(liveSubjectId)}
-                    </span>
-                    &apos;s score for{" "}
-                    <span className="font-bold text-primary">{liveSkillName}</span>{" "}
-                    based on the current evaluator reveals.
-                    {!allPeersRevealed ? (
-                      <span className="mt-2 block text-warning">
-                        Reveal the full queue before committing.
+                      <h3 className="text-sm font-black uppercase tracking-tight text-on-surface">
+                        Final calibration
+                      </h3>
+                    </div>
+                    <p className="mb-8 text-xs leading-relaxed text-on-surface-variant">
+                      Finalize{" "}
+                      <span className="font-semibold text-on-surface">
+                        {nameByUserId.get(liveSubjectId)}
                       </span>
-                    ) : null}
-                  </p>
-                  <div className="space-y-6">
-                    <div>
-                      <label
-                        htmlFor="calib-override"
-                        className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant"
+                      &apos;s score for{" "}
+                      <span className="font-bold text-primary">
+                        {liveSkillName}
+                      </span>{" "}
+                      based on the current evaluator reveals.
+                      {!allPeersRevealed ? (
+                        <span className="mt-2 block text-warning">
+                          Reveal the full queue before committing.
+                        </span>
+                      ) : null}
+                    </p>
+                    <div className="space-y-6">
+                      <div>
+                        <label
+                          htmlFor="calib-override"
+                          className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant"
+                        >
+                          Manual override
+                        </label>
+                        <input
+                          id="calib-override"
+                          type="text"
+                          inputMode="decimal"
+                          value={calibDraft}
+                          onChange={(e) => setCalibDraft(e.target.value)}
+                          placeholder="e.g. 4.2"
+                          className="w-full border-0 border-b-2 border-outline-variant bg-surface-container-low py-2 text-3xl font-black text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-0"
+                        />
+                      </div>
+                      <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                            Calculated delta
+                          </span>
+                          <span className="font-mono text-xs text-primary">
+                            {deltaVsRevealed != null
+                              ? `${deltaVsRevealed >= 0 ? "+" : ""}${deltaVsRevealed.toFixed(1)}`
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
+                            <div
+                              className="h-full bg-primary transition-all"
+                              style={{
+                                width: `${revealedReferenceMean != null ? Math.min(100, (revealedReferenceMean / 5) * 100) : 0}%`,
+                              }}
+                            />
+                          </div>
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
+                            <div
+                              className="h-full bg-outline-variant transition-all"
+                              style={{
+                                width: `${!Number.isNaN(calibDraftNum) && calibDraftNum >= 0 ? Math.min(100, (calibDraftNum / 5) * 100) : 0}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[8px] uppercase tracking-widest text-on-surface-variant opacity-70">
+                          Bars: revealed peer mean · draft override (0–5 scale)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={
+                          busy !== null ||
+                          !allPeersRevealed ||
+                          !calibDraft.trim() ||
+                          Number.isNaN(Number(calibDraft))
+                        }
+                        onClick={() => {
+                          const n = Number(calibDraft);
+                          if (Number.isNaN(n)) return;
+                          run("commit", () =>
+                            upsertCalibrationMark({
+                              sessionId: session._id,
+                              subjectId: liveSubjectId,
+                              skillId: liveSkillId,
+                              mark: n,
+                              managerKey: effectiveManagerKey,
+                            }),
+                          );
+                        }}
+                        className="w-full rounded-lg bg-primary py-4 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_20px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
                       >
-                        Manual override
-                      </label>
-                      <input
-                        id="calib-override"
-                        type="text"
-                        inputMode="decimal"
-                        value={calibDraft}
-                        readOnly={!canManage}
-                        onChange={(e) => setCalibDraft(e.target.value)}
-                        placeholder="e.g. 4.2"
-                        className="w-full border-0 border-b-2 border-outline-variant bg-surface-container-low py-2 text-3xl font-black text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-0 read-only:opacity-80"
-                      />
+                        Commit baseline
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          matrixSectionRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          })
+                        }
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant transition-colors hover:text-on-surface"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          history
+                        </span>
+                        Full history
+                      </button>
                     </div>
-                    <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
-                          Calculated delta
+                  </div>
+                ) : (
+                  <div className="flex flex-col rounded-xl border border-outline-variant/25 bg-surface-container-high/90 p-6 shadow-lg backdrop-blur-md">
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded bg-surface-container-highest">
+                        <span className="material-symbols-outlined text-sm text-on-surface-variant">
+                          hourglass_empty
                         </span>
-                        <span className="font-mono text-xs text-primary">
-                          {deltaVsRevealed != null
-                            ? `${deltaVsRevealed >= 0 ? "+" : ""}${deltaVsRevealed.toFixed(1)}`
-                            : "—"}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{
-                              width: `${revealedReferenceMean != null ? Math.min(100, (revealedReferenceMean / 5) * 100) : 0}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
-                          <div
-                            className="h-full bg-outline-variant transition-all"
-                            style={{
-                              width: `${!Number.isNaN(calibDraftNum) && calibDraftNum >= 0 ? Math.min(100, (calibDraftNum / 5) * 100) : 0}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <p className="mt-2 text-[8px] uppercase tracking-widest text-on-surface-variant opacity-70">
-                        Bars: revealed peer mean · draft override (0–5 scale)
+                      </span>
+                      <h3 className="text-sm font-black uppercase tracking-tight text-on-surface">
+                        Team baseline
+                      </h3>
+                    </div>
+                    <p className="mb-6 text-xs leading-relaxed text-on-surface-variant">
+                      The manager records the agreed mark for{" "}
+                      <span className="font-semibold text-on-surface">
+                        {nameByUserId.get(liveSubjectId)}
+                      </span>{" "}
+                      on{" "}
+                      <span className="font-bold text-primary">
+                        {liveSkillName}
+                      </span>{" "}
+                      after the call discusses each reveal. You&apos;ll see it here
+                      once it&apos;s committed.
+                    </p>
+                    <div className="rounded-lg border border-outline-variant/15 bg-surface-container-low p-5 text-center">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">
+                        Committed baseline
                       </p>
+                      <p className="mt-2 font-mono text-4xl font-black text-on-surface">
+                        {currentMark !== undefined ? currentMark.toFixed(1) : "—"}
+                      </p>
+                      {currentMark === undefined ? (
+                        <p className="mt-3 text-[10px] text-on-surface-variant">
+                          Not set yet for this subject and skill.
+                        </p>
+                      ) : null}
                     </div>
-                    <button
-                      type="button"
-                      disabled={
-                        !canManage ||
-                        busy !== null ||
-                        !allPeersRevealed ||
-                        !calibDraft.trim() ||
-                        Number.isNaN(Number(calibDraft))
-                      }
-                      onClick={() => {
-                        const n = Number(calibDraft);
-                        if (Number.isNaN(n)) return;
-                        run("commit", () =>
-                          upsertCalibrationMark({
-                            sessionId: session._id,
-                            subjectId: liveSubjectId,
-                            skillId: liveSkillId,
-                            mark: n,
-                            managerKey: effectiveManagerKey,
-                          }),
-                        );
-                      }}
-                      className="w-full rounded-lg bg-primary py-4 text-xs font-black uppercase tracking-widest text-on-primary shadow-[0_0_20px_rgba(94,180,255,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
-                    >
-                      Commit baseline
-                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -825,7 +922,7 @@ export function LiveEvaluationClient({
                           block: "start",
                         })
                       }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant transition-colors hover:text-on-surface"
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container py-3 text-[10px] font-black uppercase tracking-widest text-on-surface-variant transition-colors hover:text-on-surface"
                     >
                       <span className="material-symbols-outlined text-sm">
                         history
@@ -833,7 +930,7 @@ export function LiveEvaluationClient({
                       Full history
                     </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}

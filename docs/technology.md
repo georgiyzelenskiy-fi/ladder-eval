@@ -52,7 +52,8 @@ To avoid the complexity of Auth0 or NextAuth:
 1.  **Manager access:** Team setup at **`/manage`**; control room at **`/room/driver`**; live evaluation at **`/room/live-evaluation`** (optional **`MANAGER_ACCESS_KEY`** gate via **`?k=…`** on those routes). See `.env.local.example`.
 2.  **Evaluator access:** One URL per participant, e.g. **`/eval/dev-1`**. The manager copies links from **`/manage`**. For any session other than **`default`**, URLs include **`?session=<sessions.slug>`** so the app resolves the correct round (evaluator `slug` is unique per session, not globally). See [design-document.md §6.3](./design-document.md).
 3.  **Persistence:** On first visit, the evaluator enters their name; Convex `users.joinSession` runs and the returned **`userId`** is stored in **`localStorage`** (key includes session slug + evaluator slug; see `lib/devsync-constants.ts`).
-4.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
+4.  **Live-eval page (`/room/live-evaluation`):** When the manager key gate is on, browsers **without** a stored manager key still load the page if **`useRegisteredEvaluatorId`** (`lib/use-registered-evaluator-id.ts`) finds a **registered evaluator** id for that session slug on the roster; they get **follow-along** (reveal progress, matrices) without **`?k=`**. Managers still need the key to mutate session state.
+5.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
 
 ## 6. Real-time Logic Flow (The "Convex way")
 Instead of `useEffect` and `fetch`, the UI will use the `useQuery` hook:

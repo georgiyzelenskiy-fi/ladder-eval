@@ -135,6 +135,7 @@ Use the project’s actual step size if it differs from `0.1`; the doc encodes t
 - **Evaluators** open **`/eval/[evaluatorSlug]`**. The path segment is the participant’s **`users.slug`**, which is unique **per session**, not globally. When multiple rounds exist (or any non-`default` session), shared links include **`?session=<session-slug>`** so the client resolves the correct `sessions` row before any `users` / `joinSession` work.
 - **Managers** use **`/manage`** (Team setup) to create or open a session, edit roster, and **copy evaluator URLs** (with `?session=` when needed). Manager surfaces **`/room/driver`** and **`/room/live-evaluation`** use the same **`?session=`** query param so control room and live calibration target the same round as the team’s matrix links.
 - **Browser persistence** (`localStorage` binding evaluator ↔ Convex `users` id) is **scoped by session slug + evaluator slug** so the same browser can participate in different rounds without collisions.
+- **Live calibration follow-along:** If **`MANAGER_ACCESS_KEY`** gates manager routes, an evaluator who has already **joined** via **`/eval/[evaluatorSlug]`** (same session slug) can open **`/room/live-evaluation`** with **`?session=…`** and see the live-eval UI **read-only** (skill/subject/reveal controls stay manager-only). The client resolves the stored user id against the roster (`lib/use-registered-evaluator-id.ts`).
 
 ---
 
