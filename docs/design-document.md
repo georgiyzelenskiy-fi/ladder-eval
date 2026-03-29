@@ -50,7 +50,7 @@ Manager drives the UI. The MVP uses **two complementary manager surfaces** under
 - **Active evaluator** (optional) signals whose matrix is “hot” for discussion; it does not change role-based prep secrecy.
 
 **B — Live evaluation (`/room/live-evaluation`)**  
-- For a chosen **skill** and **subject**, the manager runs a **peer reveal queue**: reveal order + cursor advance **one evaluator at a time** (Convex: `liveEvalRevealOrder`, `liveEvalRevealCursor`, `session.liveEvalRevealNext`). UI reference: `docs/live-group-evaluation.html`.  
+- For a chosen **skill** and **subject**, the manager runs a **reveal queue** (every evaluator, including the subject’s **self** row, in a stable slug order): reveal order + cursor advance **one evaluator at a time** (Convex: `liveEvalRevealOrder`, `liveEvalRevealCursor`, `session.liveEvalRevealNext`). UI reference: `docs/live-group-evaluation.html`.  
 - Peers not yet reached may appear **locked** until the cursor advances; the manager commits **calibration marks** per `(subject, skill)` after discussion (`calibrationMarks`).
 
 **Discussion (both surfaces):** The group calibrates using **UI estimate** (from checkboxes), **evaluator marks** (manual 1–5), and **manager calibration / final mark** as recorded in the app.

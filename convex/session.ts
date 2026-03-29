@@ -18,10 +18,9 @@ function shuffleIds(ids: Id<"users">[]): Id<"users">[] {
   return copy;
 }
 
-async function defaultPeerRevealOrder(
+async function defaultLiveEvalRevealOrder(
   ctx: MutationCtx,
   sessionId: Id<"sessions">,
-  subjectId: Id<"users">,
 ): Promise<Id<"users">[]> {
   const roster = await ctx.db
     .query("users")
@@ -33,7 +32,6 @@ async function defaultPeerRevealOrder(
       role: u.role,
       slug: u.slug,
     })),
-    subjectId,
   );
   return order as Id<"users">[];
 }
@@ -209,7 +207,7 @@ export const setLiveEvalSubject = mutation({
   },
   handler: async (ctx, { sessionId, subjectId, managerKey }) => {
     assertManagerKey(managerKey);
-    const order = await defaultPeerRevealOrder(ctx, sessionId, subjectId);
+    const order = await defaultLiveEvalRevealOrder(ctx, sessionId);
     await ctx.db.patch(sessionId, {
       liveEvalSubjectId: subjectId,
       liveEvalRevealOrder: order,
@@ -271,7 +269,7 @@ export const randomizeLiveEvalSubject = mutation({
       candidateIds[Math.floor(Math.random() * candidateIds.length)]!;
     const pick = evaluators.find((u) => u._id === pickId);
     if (!pick) return;
-    const order = await defaultPeerRevealOrder(ctx, sessionId, pick._id);
+    const order = await defaultLiveEvalRevealOrder(ctx, sessionId);
     await ctx.db.patch(sessionId, {
       liveEvalSubjectId: pick._id,
       liveEvalRevealOrder: order,

@@ -603,7 +603,7 @@ export function LiveEvaluationClient({
                             lock
                           </span>
                           <span className="text-[9px] font-black uppercase tracking-widest text-outline-variant">
-                            Locked evaluator
+                            Awaiting reveal
                           </span>
                         </div>
                       );
@@ -624,8 +624,13 @@ export function LiveEvaluationClient({
                             <h4 className="text-[10px] font-black uppercase leading-none tracking-tight text-on-surface">
                               {nameByUserId.get(peerId) ?? peerId}
                             </h4>
-                            <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-primary">
-                              Revealed
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[8px] font-bold uppercase tracking-widest text-primary">
+                              <span>Revealed</span>
+                              {peerId === liveSubjectId ? (
+                                <span className="rounded bg-primary/15 px-1 py-px text-[7px] tracking-tighter text-primary">
+                                  Self
+                                </span>
+                              ) : null}
                             </span>
                           </div>
                         </div>
@@ -665,8 +670,8 @@ export function LiveEvaluationClient({
                 </div>
                 {revealOrder.length === 0 ? (
                   <p className="text-sm text-on-surface-variant">
-                    No peers to reveal (need at least two evaluators, or this
-                    subject has no other evaluators).
+                    No evaluators in the queue. Seed evaluator accounts from the
+                    control room.
                   </p>
                 ) : null}
                 <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">
@@ -730,7 +735,7 @@ export function LiveEvaluationClient({
                     based on the current evaluator reveals.
                     {!allPeersRevealed ? (
                       <span className="mt-2 block text-warning">
-                        Reveal all peers before committing.
+                        Reveal the full queue before committing.
                       </span>
                     ) : null}
                   </p>
