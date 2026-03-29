@@ -152,3 +152,9 @@ Use as a traceability aid for agents and humans.
 - [ ] Schema: framework JSON + evaluation entries (TS rubrics in `lib/` are the working source until export/seed exists)  
 - [ ] UI: split evaluation layout; manager control room + broadcast  
 - [ ] Bias guards: discrepancy threshold; 50% interaction before manual mark  
+
+---
+
+## 9. Post-MVP roadmap
+
+MVP shipped and was **successfully battle-tested**. Deferred and follow-up product feedback (live-eval + eval UX, auth, manager surfaces, heatmap/radar, and optional enhancements) lives in **[post-mvp-roadmap.md](./post-mvp-roadmap.md)** so the design checklist above stays a spec traceability aid while the backlog evolves separately.

@@ -22,6 +22,7 @@
 | Doc | One-line scope | Primary topics |
 |-----|----------------|----------------|
 | [design-document.md](./design-document.md) | Product, workflow, scoring, visuals, schema sketch, bias guards | FSM prepare/reveal, roles, Guttman-style scoring, radar + heatmap, data fields, UI patterns |
+| [post-mvp-roadmap.md](./post-mvp-roadmap.md) | Post-MVP backlog: stakeholder feedback after successful MVP, optional enhancements | Live-eval (self in queue, non-manager UX, hard/soft scope), eval matrix UX, auth, manager revamp, heatmap/radar, traceability |
 | [technology.md](./technology.md) | MVP stack (Next.js, Convex, Tailwind, Vercel), Convex schema/API sketch, auth shortcut, milestones | Convex tables, queries/mutations, real-time hooks, deployment |
 | [DESIGN.md](./DESIGN.md) | Editorial dark UI strategy (“Precision Architect”): material-style surfaces, no-line layout rule, typography, elevation, buttons/charts/cards | Tailwind/M3-like tokens, glass/gradient CTAs, radar/line viz rules, asymmetry, do/don’t |
 | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) | DevSync V1 implementation palette: hex tokens, layout shell (nav, content), product patterns (heatmap, radar, Dreyfus checkboxes), motion & gating notes | Colors, Inter/Roboto Mono, Tailwind + Material Symbols, bias-mitigation UI states |
@@ -43,6 +44,7 @@
 | JSON framework, evaluation record shape, screen layout | [design-document.md §6](./design-document.md) |
 | Discrepancy highlight, manual-mark gating | [design-document.md §7](./design-document.md) |
 | Trace requirements to implementation | [design-document.md §8](./design-document.md) |
+| Post-MVP features, backlog after MVP ship, battle-tested feedback | [post-mvp-roadmap.md](./post-mvp-roadmap.md) · [design-document.md §9](./design-document.md) |
 | Stack choice, Convex schema/functions, MVP auth, build/deploy commands | [technology.md](./technology.md) |
 | Preset team roster (Burger), evaluator slugs / seeding | [technology.md §2](./technology.md) · `lib/roster-presets/burger.ts` |
 | Visual language, surface hierarchy, “no-line” layout, editorial density, chart line weights | [DESIGN.md](./DESIGN.md) |
