@@ -7,7 +7,6 @@ import {
   persistManagerAccessKey,
   useStoredManagerAccessKey,
 } from "@/lib/devsync-browser";
-import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import { competencyToCheckpoints } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
@@ -81,11 +80,14 @@ const EMPTY_PEER_ORDER: Id<"users">[] = [];
 export function LiveEvaluationClient({
   managerGateActive,
   managerKey: managerKeyFromUrl,
+  sessionSlug,
 }: {
   /** True when `MANAGER_ACCESS_KEY` is set in Convex / Next env (mutations require a key). */
   managerGateActive: boolean;
   /** `?k=` from this request; persisted to localStorage when present for later visits without the query. */
   managerKey?: string;
+  /** From `?session=` on this route. */
+  sessionSlug: string;
 }) {
   const storedManagerKey = useStoredManagerAccessKey();
   const effectiveManagerKey =
@@ -97,7 +99,7 @@ export function LiveEvaluationClient({
   }, [managerKeyFromUrl]);
 
   const ensureSession = useMutation(api.session.ensureSession);
-  const session = useQuery(api.session.getSession, { slug: DEFAULT_SESSION_SLUG });
+  const session = useQuery(api.session.getSession, { slug: sessionSlug });
   const sessionId = session?._id;
 
   const bundle = useQuery(
@@ -132,7 +134,10 @@ export function LiveEvaluationClient({
     let cancelled = false;
     (async () => {
       try {
-        await ensureSession({ slug: DEFAULT_SESSION_SLUG });
+        await ensureSession({
+          slug: sessionSlug,
+          managerKey: effectiveManagerKey,
+        });
       } catch (e) {
         if (!cancelled) {
           setBootError(e instanceof Error ? e.message : "ensureSession failed");
@@ -142,7 +147,7 @@ export function LiveEvaluationClient({
     return () => {
       cancelled = true;
     };
-  }, [ensureSession]);
+  }, [ensureSession, sessionSlug, effectiveManagerKey]);
 
   const run = useCallback(async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label);

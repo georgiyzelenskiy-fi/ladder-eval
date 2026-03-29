@@ -1,11 +1,24 @@
 import { EvalJoinClient } from "./EvalJoinClient";
+import { parseSessionSlugParam } from "@/lib/session-slug-param";
+
+type EvalSearch = Promise<{ session?: string | string[] }>;
 
 export default async function EvalJoinPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: EvalSearch;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const raw =
+    typeof sp.session === "string"
+      ? sp.session
+      : Array.isArray(sp.session)
+        ? sp.session[0]
+        : undefined;
+  const sessionSlug = parseSessionSlugParam(raw);
 
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
@@ -21,5 +34,7 @@ export default async function EvalJoinPage({
     );
   }
 
-  return <EvalJoinClient key={slug} slug={slug} />;
+  return (
+    <EvalJoinClient key={`${sessionSlug}:${slug}`} slug={slug} sessionSlug={sessionSlug} />
+  );
 }

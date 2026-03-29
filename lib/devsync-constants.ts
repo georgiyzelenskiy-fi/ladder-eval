@@ -6,14 +6,22 @@ export const STORAGE_USER_ID_KEY = "devsync-convex-user-id";
 /** Dispatched when evaluator localStorage keys change (same-tab; `storage` event is cross-tab only). */
 export const DEVSYNC_STORAGE_NOTIFY_EVENT = "devsync-local-storage";
 
-/** Bound Convex `users` id after join on `/eval/[slug]`. */
-export function evaluatorUserIdStorageKey(evaluatorSlug: string): string {
-  return `${STORAGE_USER_ID_KEY}:${DEFAULT_SESSION_SLUG}:${evaluatorSlug}`;
+/** Bound Convex `users` id after join on `/eval/[slug]` (scoped by session). */
+export function evaluatorUserIdStorageKey(
+  sessionSlug: string,
+  evaluatorSlug: string,
+): string {
+  return `${STORAGE_USER_ID_KEY}:${sessionSlug}:${evaluatorSlug}`;
 }
 
-/** Last joined `/eval/[slug]` segment — drives sidebar “Skill matrix” from `/room/*`. */
+/** Last joined `/eval/[slug]` segment for a session — drives sidebar from `/room/*`. */
+export function lastEvalSlugStorageKey(sessionSlug: string): string {
+  return `devsync-last-eval-slug:${sessionSlug}`;
+}
+
+/** Legacy key for the default session only (same as `lastEvalSlugStorageKey("default")`). */
 export const LAST_EVAL_SLUG_STORAGE_KEY =
-  `devsync-last-eval-slug:${DEFAULT_SESSION_SLUG}` as const;
+  lastEvalSlugStorageKey(DEFAULT_SESSION_SLUG);
 
 /**
  * Persists `MANAGER_ACCESS_KEY` after one valid `?k=` visit so `/room/live-evaluation`

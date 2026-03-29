@@ -1,7 +1,10 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
+import {
+  persistManagerAccessKey,
+  useStoredManagerAccessKey,
+} from "@/lib/devsync-browser";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
 import {
   BURGER_ROSTER,
@@ -11,16 +14,26 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
+type DriverClientProps = {
+  /** Validated `?k=` from server when `MANAGER_ACCESS_KEY` is set. */
+  managerKeyFromUrl?: string;
+  /** From `?session=`; default room is `default`. */
+  sessionSlug: string;
+};
+
 type SubjectSummary = {
   totalCheckpoints: number;
   checkedCount: number;
   rowCount: number;
 };
 
-function useBootstrapSession() {
+function useBootstrapSession(
+  sessionSlug: string,
+  managerKey: string | undefined,
+) {
   const ensureSession = useMutation(api.session.ensureSession);
   const session = useQuery(api.session.getSession, {
-    slug: DEFAULT_SESSION_SLUG,
+    slug: sessionSlug,
   });
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -28,7 +41,10 @@ function useBootstrapSession() {
     let cancelled = false;
     (async () => {
       try {
-        await ensureSession({ slug: DEFAULT_SESSION_SLUG });
+        await ensureSession({
+          slug: sessionSlug,
+          managerKey,
+        });
       } catch (e) {
         if (!cancelled) {
           setBootError(e instanceof Error ? e.message : "ensureSession failed");
@@ -38,13 +54,26 @@ function useBootstrapSession() {
     return () => {
       cancelled = true;
     };
-  }, [ensureSession]);
+  }, [ensureSession, managerKey, sessionSlug]);
 
   return { session, bootError };
 }
 
-export function DriverClient() {
-  const { session, bootError } = useBootstrapSession();
+export function DriverClient({
+  managerKeyFromUrl,
+  sessionSlug,
+}: DriverClientProps) {
+  const storedManagerKey = useStoredManagerAccessKey();
+  const effectiveManagerKey = managerKeyFromUrl ?? storedManagerKey ?? undefined;
+
+  useEffect(() => {
+    if (managerKeyFromUrl) persistManagerAccessKey(managerKeyFromUrl);
+  }, [managerKeyFromUrl]);
+
+  const { session, bootError } = useBootstrapSession(
+    sessionSlug,
+    effectiveManagerKey,
+  );
   const setPhase = useMutation(api.session.setSessionPhase);
   const pickNext = useMutation(api.session.pickNextEvaluator);
   const setRevealSkill = useMutation(api.session.setActiveRevealSkill);
@@ -119,7 +148,7 @@ export function DriverClient() {
             Prepare-then-reveal FSM: drive phase, active evaluator, and closing
             verdict. Session slug{" "}
             <code className="rounded bg-zinc-200/80 px-1 py-0.5 text-xs dark:bg-zinc-800">
-              {DEFAULT_SESSION_SLUG}
+              {sessionSlug}
             </code>
             . For sequential peer reveal per skill, use{" "}
             <a
@@ -157,6 +186,7 @@ export function DriverClient() {
                   name,
                   role,
                 })),
+                managerKey: effectiveManagerKey,
               }),
             )
           }
@@ -180,7 +210,11 @@ export function DriverClient() {
             }
             onClick={() =>
               run("prep", () =>
-                setPhase({ sessionId: session._id, phase: "preparation" }),
+                setPhase({
+                  sessionId: session._id,
+                  phase: "preparation",
+                  managerKey: effectiveManagerKey,
+                }),
               )
             }
             className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
@@ -196,7 +230,11 @@ export function DriverClient() {
             }
             onClick={() =>
               run("live", () =>
-                setPhase({ sessionId: session._id, phase: "live" }),
+                setPhase({
+                  sessionId: session._id,
+                  phase: "live",
+                  managerKey: effectiveManagerKey,
+                }),
               )
             }
             className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
@@ -220,6 +258,7 @@ export function DriverClient() {
                   pickNext({
                     sessionId: session._id,
                     evaluatorUserId: undefined,
+                    managerKey: effectiveManagerKey,
                   }),
                 )
               }
@@ -268,6 +307,7 @@ export function DriverClient() {
                     setRevealSkill({
                       sessionId: session._id,
                       skillId: nextId,
+                      managerKey: effectiveManagerKey,
                     }),
                   );
                 }
@@ -291,6 +331,7 @@ export function DriverClient() {
                     setRevealSkill({
                       sessionId: session._id,
                       skillId: nextId,
+                      managerKey: effectiveManagerKey,
                     }),
                   );
                 }
@@ -307,6 +348,7 @@ export function DriverClient() {
                   setRevealSkill({
                     sessionId: session._id,
                     skillId: null,
+                    managerKey: effectiveManagerKey,
                   }),
                 )
               }
@@ -332,6 +374,7 @@ export function DriverClient() {
                         setRevealSkill({
                           sessionId: session._id,
                           skillId: c.id,
+                          managerKey: effectiveManagerKey,
                         }),
                       )
                     }
@@ -386,6 +429,7 @@ export function DriverClient() {
                         pickNext({
                           sessionId: session._id,
                           evaluatorUserId: u._id,
+                          managerKey: effectiveManagerKey,
                         }),
                       )
                     }
@@ -481,6 +525,7 @@ export function DriverClient() {
               submitVerdict({
                 sessionId: session._id,
                 verdict: verdictDraft.trim(),
+                managerKey: effectiveManagerKey,
               }),
             )
           }

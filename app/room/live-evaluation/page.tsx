@@ -1,6 +1,10 @@
 import { LiveEvaluationClient } from "./LiveEvaluationClient";
+import { parseSessionSlugParam } from "@/lib/session-slug-param";
 
-type Search = Promise<{ k?: string | string[] }>;
+type Search = Promise<{
+  k?: string | string[];
+  session?: string | string[];
+}>;
 
 export default async function LiveEvaluationPage({
   searchParams,
@@ -14,6 +18,13 @@ export default async function LiveEvaluationPage({
   /** Only forward `?k=` when it matches env so we never persist a wrong guess to localStorage. */
   const managerKeyFromUrl =
     managerGateActive && required && key === required ? key : undefined;
+  const rawSession =
+    typeof sp.session === "string"
+      ? sp.session
+      : Array.isArray(sp.session)
+        ? sp.session[0]
+        : undefined;
+  const sessionSlug = parseSessionSlugParam(rawSession);
 
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
@@ -42,6 +53,7 @@ export default async function LiveEvaluationPage({
     <LiveEvaluationClient
       managerGateActive={managerGateActive}
       managerKey={managerKeyFromUrl}
+      sessionSlug={sessionSlug}
     />
   );
 }

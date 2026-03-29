@@ -2,9 +2,11 @@
 
 import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
 import {
+  DEFAULT_SESSION_SLUG,
   DEVSYNC_STORAGE_NOTIFY_EVENT,
-  LAST_EVAL_SLUG_STORAGE_KEY,
+  lastEvalSlugStorageKey,
 } from "@/lib/devsync-constants";
+import { buildRoomHref } from "@/lib/room-url";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -26,7 +28,7 @@ type NavItem = {
   disabledTitle?: string;
 };
 
-function useLastJoinedEvalSlug(): string | null {
+function useLastJoinedEvalSlug(sessionSlug: string): string | null {
   return useSyncExternalStore(
     (onChange) => {
       if (typeof window === "undefined") return () => {};
@@ -40,7 +42,7 @@ function useLastJoinedEvalSlug(): string | null {
     },
     () => {
       try {
-        const v = localStorage.getItem(LAST_EVAL_SLUG_STORAGE_KEY);
+        const v = localStorage.getItem(lastEvalSlugStorageKey(sessionSlug));
         return v && v.length > 0 ? v : null;
       } catch {
         return null;
@@ -52,6 +54,7 @@ function useLastJoinedEvalSlug(): string | null {
 
 const LIVE_CAL_PATH = "/room/live-evaluation";
 const DRIVER_PATH = "/room/driver";
+const MANAGE_PATH = "/manage";
 
 type EvalVariantProps = {
   variant?: "eval";
@@ -63,6 +66,8 @@ type EvalVariantProps = {
 type RoomVariantProps = {
   variant: "room";
   headerTitle: string;
+  /** From `?session=` on `/room/*`; scopes storage and deep links. */
+  roomSessionSlug: string;
   children: ReactNode;
   contentWrapperClassName?: string;
   /** If set, Skill matrix links to this evaluator slug. */
@@ -74,13 +79,22 @@ export type EvalWorkspaceShellProps = EvalVariantProps | RoomVariantProps;
 export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const pathname = usePathname();
   const storedManagerKey = useStoredManagerAccessKey();
-  const liveCalHref = useMemo(() => {
-    if (storedManagerKey)
-      return `${LIVE_CAL_PATH}?k=${encodeURIComponent(storedManagerKey)}`;
-    return LIVE_CAL_PATH;
-  }, [storedManagerKey]);
-  const lastJoinedEvalSlug = useLastJoinedEvalSlug();
   const isRoom = props.variant === "room";
+  const roomSessionSlug =
+    props.variant === "room" ? props.roomSessionSlug : "default";
+  const liveCalHref = useMemo(
+    () => buildRoomHref(LIVE_CAL_PATH, roomSessionSlug, storedManagerKey),
+    [roomSessionSlug, storedManagerKey],
+  );
+  const driverHref = useMemo(
+    () => buildRoomHref(DRIVER_PATH, roomSessionSlug, storedManagerKey),
+    [roomSessionSlug, storedManagerKey],
+  );
+  const manageHref = useMemo(() => {
+    if (!storedManagerKey) return MANAGE_PATH;
+    return `${MANAGE_PATH}?k=${encodeURIComponent(storedManagerKey)}`;
+  }, [storedManagerKey]);
+  const lastJoinedEvalSlug = useLastJoinedEvalSlug(roomSessionSlug);
   const evalSlug = props.variant === "room" ? null : props.slug;
   const roomHeaderTitle = props.variant === "room" ? props.headerTitle : null;
   const roomSkillMatrixSlug =
@@ -91,15 +105,29 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       ? (roomSkillMatrixSlug ?? lastJoinedEvalSlug)!
       : null;
 
+  const skillMatrixHrefForRoom =
+    roomResolvedMatrixSlug != null
+      ? (() => {
+          const u = new URLSearchParams();
+          if (roomSessionSlug !== DEFAULT_SESSION_SLUG) {
+            u.set("session", roomSessionSlug);
+          }
+          const q = u.toString();
+          return q
+            ? `/eval/${roomResolvedMatrixSlug}?${q}`
+            : `/eval/${roomResolvedMatrixSlug}`;
+        })()
+      : null;
+
   const evalPath = evalSlug != null ? `/eval/${evalSlug}` : null;
   const onEval = evalPath != null && pathname === evalPath;
 
   const skillMatrixItem: NavItem =
     evalSlug != null
       ? { href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }
-      : roomResolvedMatrixSlug
+      : skillMatrixHrefForRoom
         ? {
-            href: `/eval/${roomResolvedMatrixSlug}`,
+            href: skillMatrixHrefForRoom,
             label: "Skill matrix",
             icon: "hub",
           }
@@ -115,7 +143,16 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const mainNav: NavItem[] = [
     { href: "/", label: "Dashboard", icon: "dashboard", disabled: true },
     skillMatrixItem,
-    { href: DRIVER_PATH, label: "Control room", icon: "analytics" },
+    ...(isRoom
+      ? ([
+          {
+            href: manageHref,
+            label: "Team setup",
+            icon: "group_add",
+          },
+        ] satisfies NavItem[])
+      : []),
+    { href: driverHref, label: "Control room", icon: "analytics" },
     { href: liveCalHref, label: "Live calibration", icon: "groups" },
     { href: "#", label: "Team insights", icon: "group", disabled: true },
     { href: "#", label: "Repository", icon: "terminal", disabled: true },
@@ -169,24 +206,29 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
             const isSkillMatrixRoom =
               !item.disabled &&
               isRoom &&
-              roomResolvedMatrixSlug != null &&
-              item.href === `/eval/${roomResolvedMatrixSlug}` &&
-              pathname === item.href;
+              skillMatrixHrefForRoom != null &&
+              item.href === skillMatrixHrefForRoom &&
+              pathname === `/eval/${roomResolvedMatrixSlug}`;
             const isControlRoom =
               !item.disabled &&
-              item.href === DRIVER_PATH &&
-              pathname.startsWith(DRIVER_PATH);
+              pathname.startsWith(DRIVER_PATH) &&
+              item.label === "Control room";
             const isLiveCal =
               !item.disabled &&
               item.label === "Live calibration" &&
               pathname.startsWith(LIVE_CAL_PATH);
+            const isTeamSetup =
+              !item.disabled &&
+              item.label === "Team setup" &&
+              pathname.startsWith(MANAGE_PATH);
 
             const highlighted =
               isDashboard ||
               isSkillMatrix ||
               isSkillMatrixRoom ||
               isControlRoom ||
-              isLiveCal;
+              isLiveCal ||
+              isTeamSetup;
 
             if (item.disabled) {
               return (

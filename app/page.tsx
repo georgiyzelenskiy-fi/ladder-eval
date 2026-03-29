@@ -32,6 +32,18 @@ export default function Home() {
         <ul className="mt-8 space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
           <li>
             <Link
+              href="/manage"
+              className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 hover:decoration-zinc-600 dark:text-zinc-100 dark:hover:decoration-zinc-500"
+            >
+              Team setup
+            </Link>
+            <span className="text-zinc-500 dark:text-zinc-500">
+              {" "}
+              — create session, roster, copy evaluator links
+            </span>
+          </li>
+          <li>
+            <Link
               href="/room/driver"
               className="font-medium text-zinc-900 underline decoration-zinc-400/70 underline-offset-2 hover:decoration-zinc-600 dark:text-zinc-100 dark:hover:decoration-zinc-500"
             >

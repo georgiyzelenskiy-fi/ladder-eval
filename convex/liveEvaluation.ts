@@ -1,12 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-function assertManagerKey(provided: string | undefined): void {
-  const required = process.env.MANAGER_ACCESS_KEY;
-  if (required == null || required === "") return;
-  if (provided !== required) {
-    throw new Error("Manager access required");
-  }
-}
+import { assertManagerKey } from "../lib/convex-manager-auth";
 
 /** Manager live-eval UI: roster, all evaluations, calibration marks, session wizard fields. */
 export const getLiveEvalBundle = query({

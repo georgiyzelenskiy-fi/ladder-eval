@@ -5,18 +5,23 @@ import {
   DEFAULT_SESSION_SLUG,
   DEVSYNC_STORAGE_NOTIFY_EVENT,
   evaluatorUserIdStorageKey,
-  LAST_EVAL_SLUG_STORAGE_KEY,
+  lastEvalSlugStorageKey,
 } from "@/lib/devsync-constants";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { EvaluatorMatrix } from "./EvaluatorMatrix";
 
-type Props = { slug: string };
+type Props = { slug: string; sessionSlug: string };
 
-function readStoredUserId(slug: string): Id<"users"> | null {
+function readStoredUserId(
+  sessionSlug: string,
+  evaluatorSlug: string,
+): Id<"users"> | null {
   try {
-    const raw = localStorage.getItem(evaluatorUserIdStorageKey(slug));
+    const raw = localStorage.getItem(
+      evaluatorUserIdStorageKey(sessionSlug, evaluatorSlug),
+    );
     return raw ? (raw as Id<"users">) : null;
   } catch {
     return null;
@@ -28,7 +33,10 @@ function notifyLocalStorageListeners() {
   window.dispatchEvent(new Event(DEVSYNC_STORAGE_NOTIFY_EVENT));
 }
 
-function useStoredConvexUserId(slug: string): Id<"users"> | null {
+function useStoredConvexUserId(
+  sessionSlug: string,
+  evaluatorSlug: string,
+): Id<"users"> | null {
   return useSyncExternalStore(
     (onChange) => {
       if (typeof window === "undefined") return () => {};
@@ -37,7 +45,7 @@ function useStoredConvexUserId(slug: string): Id<"users"> | null {
       return () =>
         window.removeEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, handler);
     },
-    () => readStoredUserId(slug),
+    () => readStoredUserId(sessionSlug, evaluatorSlug),
     () => null,
   );
 }
@@ -45,21 +53,22 @@ function useStoredConvexUserId(slug: string): Id<"users"> | null {
 const terminalInputClass =
   "mt-1 w-full border-0 border-b border-outline-variant bg-surface-container-low px-0 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-0 rounded-sm";
 
-export function EvalJoinClient({ slug }: Props) {
+export function EvalJoinClient({ slug, sessionSlug }: Props) {
   const ensureSession = useMutation(api.session.ensureSession);
   const joinSession = useMutation(api.users.joinSession);
-  const session = useQuery(api.session.getSession, { slug: DEFAULT_SESSION_SLUG });
+  const session = useQuery(api.session.getSession, { slug: sessionSlug });
 
   const [name, setName] = useState("");
   const [nameDirty, setNameDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const savedId = useStoredConvexUserId(slug);
+  const savedId = useStoredConvexUserId(sessionSlug, slug);
 
   useEffect(() => {
+    if (sessionSlug !== DEFAULT_SESSION_SLUG) return;
     void ensureSession({ slug: DEFAULT_SESSION_SLUG }).catch(() => {
       /* DriverClient or another tab will surface errors */
     });
-  }, [ensureSession]);
+  }, [ensureSession, sessionSlug]);
 
   const sessionId = session?._id;
   const existingProfile = useQuery(
@@ -80,12 +89,12 @@ export function EvalJoinClient({ slug }: Props) {
   useEffect(() => {
     if (!me || typeof window === "undefined") return;
     try {
-      localStorage.setItem(LAST_EVAL_SLUG_STORAGE_KEY, slug);
+      localStorage.setItem(lastEvalSlugStorageKey(sessionSlug), slug);
       notifyLocalStorageListeners();
     } catch {
       /* ignore quota / private mode */
     }
-  }, [me, slug]);
+  }, [me, slug, sessionSlug]);
 
   const onJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,8 +118,11 @@ export function EvalJoinClient({ slug }: Props) {
         name: trimmed,
         role: existingProfile?.role ?? "evaluator",
       });
-      localStorage.setItem(evaluatorUserIdStorageKey(slug), userId);
-      localStorage.setItem(LAST_EVAL_SLUG_STORAGE_KEY, slug);
+      localStorage.setItem(
+        evaluatorUserIdStorageKey(sessionSlug, slug),
+        userId,
+      );
+      localStorage.setItem(lastEvalSlugStorageKey(sessionSlug), slug);
       notifyLocalStorageListeners();
       setName(trimmed);
       setNameDirty(true);
@@ -136,10 +148,28 @@ export function EvalJoinClient({ slug }: Props) {
   }
 
   if (session === null) {
+    if (sessionSlug === DEFAULT_SESSION_SLUG) {
+      return (
+        <p className="text-sm text-on-surface-variant">
+          Connecting to session…
+        </p>
+      );
+    }
     return (
-      <p className="text-sm text-on-surface-variant">
-        Connecting to session…
-      </p>
+      <div className="max-w-md space-y-2 text-sm text-on-surface-variant">
+        <p>
+          No session found for{" "}
+          <code className="rounded-sm bg-surface-container-high px-1.5 py-0.5 font-mono text-xs text-on-surface">
+            {sessionSlug}
+          </code>
+          .
+        </p>
+        <p className="text-xs">
+          Ask your manager to create the round in Team setup, or check the link
+          (including <code className="font-mono">?session=…</code> if you were
+          given one).
+        </p>
+      </div>
     );
   }
 
@@ -155,6 +185,12 @@ export function EvalJoinClient({ slug }: Props) {
             {slug}
           </code>
         </h2>
+        {sessionSlug !== DEFAULT_SESSION_SLUG ? (
+          <p className="mt-2 text-xs text-on-surface-variant">
+            Session{" "}
+            <code className="font-mono text-on-surface">{sessionSlug}</code>
+          </p>
+        ) : null}
       </header>
 
       {me ? (

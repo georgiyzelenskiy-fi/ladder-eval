@@ -1,6 +1,10 @@
 import { DriverClient } from "./DriverClient";
+import { parseSessionSlugParam } from "@/lib/session-slug-param";
 
-type Search = Promise<{ k?: string | string[] }>;
+type Search = Promise<{
+  k?: string | string[];
+  session?: string | string[];
+}>;
 
 export default async function ManagerDriverPage({
   searchParams,
@@ -10,6 +14,16 @@ export default async function ManagerDriverPage({
   const sp = await searchParams;
   const key = typeof sp.k === "string" ? sp.k : undefined;
   const required = process.env.MANAGER_ACCESS_KEY;
+  const managerGateActive = Boolean(required && required.length > 0);
+  const managerKeyFromUrl =
+    managerGateActive && required && key === required ? key : undefined;
+  const rawSession =
+    typeof sp.session === "string"
+      ? sp.session
+      : Array.isArray(sp.session)
+        ? sp.session[0]
+        : undefined;
+  const sessionSlug = parseSessionSlugParam(rawSession);
   if (required && key !== required) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center px-6 py-16">
@@ -43,7 +57,10 @@ export default async function ManagerDriverPage({
 
   return (
     <div className="flex min-h-full flex-1 flex-col px-6 py-10">
-      <DriverClient />
+      <DriverClient
+        managerKeyFromUrl={managerKeyFromUrl}
+        sessionSlug={sessionSlug}
+      />
     </div>
   );
 }

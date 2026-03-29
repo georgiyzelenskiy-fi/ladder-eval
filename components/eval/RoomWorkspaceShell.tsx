@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { parseSessionSlugParam } from "@/lib/session-slug-param";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { EvalWorkspaceShell } from "./EvalWorkspaceShell";
 
@@ -10,6 +11,8 @@ import { EvalWorkspaceShell } from "./EvalWorkspaceShell";
  */
 export function RoomWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const roomSessionSlug = parseSessionSlugParam(searchParams.get("session"));
 
   const headerTitle = pathname.startsWith("/room/live-evaluation")
     ? "Live group calibration"
@@ -23,6 +26,7 @@ export function RoomWorkspaceShell({ children }: { children: ReactNode }) {
     <EvalWorkspaceShell
       variant="room"
       headerTitle={headerTitle}
+      roomSessionSlug={roomSessionSlug}
       contentWrapperClassName={contentWrapperClassName}
     >
       {children}

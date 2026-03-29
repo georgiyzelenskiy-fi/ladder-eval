@@ -3,16 +3,11 @@ import {
   computePeerRevealOrder,
   filterRandomizeSubjectCandidates,
 } from "../lib/live-eval-session";
+import { normalizeSessionSlug } from "../lib/session-slug";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-function assertManagerKey(provided: string | undefined): void {
-  const required = process.env.MANAGER_ACCESS_KEY;
-  if (required == null || required === "") return;
-  if (provided !== required) {
-    throw new Error("Manager access required");
-  }
-}
+import { assertManagerKey } from "../lib/convex-manager-auth";
 
 function shuffleIds(ids: Id<"users">[]): Id<"users">[] {
   const copy = [...ids];
@@ -46,25 +41,83 @@ async function defaultPeerRevealOrder(
 export const getSession = query({
   args: { slug: v.optional(v.string()) },
   handler: async (ctx, { slug = "default" }) => {
+    let normalized: string;
+    try {
+      normalized = normalizeSessionSlug(slug);
+    } catch {
+      return null;
+    }
     return await ctx.db
       .query("sessions")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", normalized))
       .unique();
   },
 });
 
-/** Idempotent bootstrap for local/dev: one canonical room keyed by `slug`. */
+/**
+ * Idempotent bootstrap: get or create a session by slug.
+ * When `MANAGER_ACCESS_KEY` is set, non-`default` slugs require `managerKey` so evaluators
+ * can still auto-create the canonical `default` room without the secret.
+ */
 export const ensureSession = mutation({
-  args: { slug: v.optional(v.string()) },
-  handler: async (ctx, { slug = "default" }) => {
+  args: {
+    slug: v.optional(v.string()),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug = "default", managerKey }) => {
+    const normalized = normalizeSessionSlug(slug);
+    const gate = process.env.MANAGER_ACCESS_KEY;
+    if (gate != null && gate !== "" && normalized !== "default") {
+      assertManagerKey(managerKey);
+    }
     const existing = await ctx.db
       .query("sessions")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", normalized))
       .unique();
     if (existing) return existing._id;
     return await ctx.db.insert("sessions", {
-      slug,
+      slug: normalized,
       phase: "preparation",
+    });
+  },
+});
+
+/** Create a new session; fails if slug already exists. Requires manager key when env is set. */
+export const createSession = mutation({
+  args: {
+    slug: v.string(),
+    title: v.optional(v.string()),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug, title, managerKey }) => {
+    assertManagerKey(managerKey);
+    const normalized = normalizeSessionSlug(slug);
+    const existing = await ctx.db
+      .query("sessions")
+      .withIndex("by_slug", (q) => q.eq("slug", normalized))
+      .unique();
+    if (existing) {
+      throw new Error(`Session slug already exists: ${normalized}`);
+    }
+    return await ctx.db.insert("sessions", {
+      slug: normalized,
+      title: title?.trim() || undefined,
+      phase: "preparation",
+    });
+  },
+});
+
+export const updateSessionTitle = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    title: v.string(),
+    managerKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, title, managerKey }) => {
+    assertManagerKey(managerKey);
+    const trimmed = title.trim();
+    await ctx.db.patch(sessionId, {
+      title: trimmed.length > 0 ? trimmed : undefined,
     });
   },
 });
@@ -77,8 +130,10 @@ export const setSessionPhase = mutation({
       v.literal("live"),
       v.literal("finished"),
     ),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, phase }) => {
+  handler: async (ctx, { sessionId, phase, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, { phase });
   },
 });
@@ -88,8 +143,10 @@ export const pickNextEvaluator = mutation({
   args: {
     sessionId: v.id("sessions"),
     evaluatorUserId: v.optional(v.id("users")),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, evaluatorUserId }) => {
+  handler: async (ctx, { sessionId, evaluatorUserId, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, {
       activeEvaluatorId: evaluatorUserId,
     });
@@ -102,8 +159,10 @@ export const setActiveRevealSkill = mutation({
     sessionId: v.id("sessions"),
     /** Pass `null` to clear focus. */
     skillId: v.union(v.string(), v.null()),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, skillId }) => {
+  handler: async (ctx, { sessionId, skillId, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, {
       activeRevealSkillId: skillId === null ? undefined : skillId,
     });
@@ -114,8 +173,10 @@ export const submitVerdict = mutation({
   args: {
     sessionId: v.id("sessions"),
     verdict: v.string(),
+    managerKey: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionId, verdict }) => {
+  handler: async (ctx, { sessionId, verdict, managerKey }) => {
+    assertManagerKey(managerKey);
     await ctx.db.patch(sessionId, {
       managerVerdict: verdict,
       phase: "finished",
