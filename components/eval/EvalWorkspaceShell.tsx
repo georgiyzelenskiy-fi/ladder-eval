@@ -3,18 +3,15 @@
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
-import {
-  DEFAULT_SESSION_SLUG,
-  DEVSYNC_STORAGE_NOTIFY_EVENT,
-  lastEvalSlugStorageKey,
-} from "@/lib/devsync-constants";
+import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
 import { buildRoomHref } from "@/lib/room-url";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import { useEvalMatrixChrome } from "./EvalMatrixChromeContext";
+import { useLastJoinedEvalSlug } from "./useLastJoinedEvalSlug";
 
 function humanizeSlug(slug: string) {
   return slug
@@ -83,30 +80,6 @@ type NavItem = {
   disabled?: boolean;
   disabledTitle?: string;
 };
-
-function useLastJoinedEvalSlug(sessionSlug: string): string | null {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === "undefined") return () => {};
-      const onNotify = () => onChange();
-      window.addEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, onNotify);
-      window.addEventListener("storage", onNotify);
-      return () => {
-        window.removeEventListener(DEVSYNC_STORAGE_NOTIFY_EVENT, onNotify);
-        window.removeEventListener("storage", onNotify);
-      };
-    },
-    () => {
-      try {
-        const v = localStorage.getItem(lastEvalSlugStorageKey(sessionSlug));
-        return v && v.length > 0 ? v : null;
-      } catch {
-        return null;
-      }
-    },
-    () => null,
-  );
-}
 
 const LIVE_CAL_PATH = "/room/live-evaluation";
 const DRIVER_PATH = "/room/driver";
