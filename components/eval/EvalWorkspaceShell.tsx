@@ -248,6 +248,10 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   })();
 
   const avatarTitle = matrixChrome?.signedInName?.trim() || undefined;
+  const avatarHoverLabel =
+    avatarTitle ??
+    (!isRoom && evalSlug != null ? humanizeSlug(evalSlug) : undefined) ??
+    (roomHeaderTitle?.trim() ? roomHeaderTitle.trim() : undefined);
 
   const contentClass =
     props.contentWrapperClassName ?? "space-y-8 p-8";
@@ -377,18 +381,20 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       </aside>
 
       <main className="ml-64 flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 flex min-h-16 w-full shrink-0 flex-wrap items-center justify-between gap-3 border-b border-outline-variant/15 bg-surface/80 px-6 py-2 backdrop-blur-xl sm:px-8 sm:py-0">
+        <header className="sticky top-0 z-50 flex min-h-16 w-full shrink-0 flex-wrap items-center justify-between gap-3 overflow-visible border-b border-outline-variant/15 bg-surface/80 px-6 py-2 backdrop-blur-xl sm:px-8 sm:py-0">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
             {evalSlug != null && matrixChrome ? (
-              <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+              <div className="flex min-w-0 max-w-md flex-1 items-center gap-3 sm:max-w-lg">
                 <div
-                  className="mt-1 h-8 w-0.5 shrink-0 bg-primary sm:mt-0"
+                  className="h-7 w-0.5 shrink-0 self-center rounded-sm bg-primary"
                   aria-hidden
                 />
-                <label className="flex min-w-[min(100%,14rem)] max-w-md flex-1 flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant sm:min-w-[12rem]">
-                  Subject
+                <label className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    Subject
+                  </span>
                   <select
-                    className="w-full cursor-pointer border-0 border-b border-primary/45 bg-transparent py-1.5 text-sm font-semibold normal-case tracking-normal text-primary focus:border-primary focus:outline-none focus:ring-0"
+                    className="min-w-0 flex-1 cursor-pointer border-0 border-b border-primary/45 bg-transparent py-1 text-sm font-semibold normal-case tracking-normal text-primary focus:border-primary focus:outline-none focus:ring-0"
                     value={matrixChrome.selectedSubjectId}
                     onChange={(e) =>
                       matrixChrome.onSubjectChange(
@@ -459,18 +465,28 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               >
                 settings
               </span>
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant"
-                title={avatarTitle}
-                aria-label={
-                  avatarTitle
-                    ? `Signed in as ${avatarTitle}`
-                    : evalSlug != null
-                      ? `Evaluator ${humanizeSlug(evalSlug)}`
-                      : "Workspace"
-                }
-              >
-                {avatarLetter}
+              <div className="group relative shrink-0">
+                <div
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant transition-colors group-hover:border-primary/45 group-hover:bg-surface-container"
+                  title={avatarHoverLabel}
+                  aria-label={
+                    avatarTitle
+                      ? `Signed in as ${avatarTitle}`
+                      : evalSlug != null
+                        ? `Evaluator ${humanizeSlug(evalSlug)}`
+                        : "Workspace"
+                  }
+                >
+                  {avatarLetter}
+                </div>
+                {avatarHoverLabel ? (
+                  <span
+                    className="pointer-events-none absolute bottom-[calc(100%-60px)] left-1/2 z-[60] -translate-x-1/2 whitespace-nowrap rounded-md border border-outline-variant/35 bg-surface-container-high px-2.5 py-1 text-[11px] font-medium text-on-surface opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+                    role="tooltip"
+                  >
+                    {avatarHoverLabel}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
