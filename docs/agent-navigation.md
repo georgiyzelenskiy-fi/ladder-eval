@@ -28,6 +28,7 @@
 | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) | DevSync V1 implementation palette: hex tokens, layout shell (nav, content), product patterns (heatmap, radar, Dreyfus checkboxes), motion & gating notes | Colors, Inter/Roboto Mono, Tailwind + Material Symbols, bias-mitigation UI states |
 | [skill-evaluation.html](./skill-evaluation.html) | Static HTML prototype: per-skill evaluation (level rubric, criteria checkboxes, rationale, manual mark) | Evaluator matrix UI, Dreyfus-style descriptors, split-pane layout |
 | [developer-dashboard.html](./developer-dashboard.html) | Static HTML prototype: developer-facing dashboard (summary, competency grid, trends placeholder) | Post-eval read-only views, radar-style summary strip |
+| [insights-hub.html](./insights-hub.html) | Static HTML prototype: team calibration / insights hub shell (dense nav, cohort metrics placeholders, calibration queue) | Post-MVP insights-style layout, nav density, multi-panel hub |
 | [live-group-evaluation.html](./live-group-evaluation.html) | Static HTML prototype: manager live calibration (skill tabs, subject header, sequential peer reveal queue, final calibration, rationale modal) | Live evaluation route UX (`/room/live-evaluation`), matrix + popover patterns |
 
 *Add new rows above this line when new docs appear.*
@@ -47,11 +48,13 @@
 | Post-MVP features, backlog after MVP ship, battle-tested feedback | [post-mvp-roadmap.md](./post-mvp-roadmap.md) · [design-document.md §9](./design-document.md) |
 | Stack choice, Convex schema/functions, MVP auth, build/deploy commands | [technology.md](./technology.md) |
 | Session slug, `?session=`, Team setup (`/manage`), roster, shareable evaluator URLs (`users.seedRoster` optional bulk) | [design-document.md §6.3](./design-document.md) · [technology.md §2](./technology.md) · [technology.md §5](./technology.md) · `app/manage/` |
+| Home hub (`/`), shared workspace shell (sidebar + header), `useLastJoinedEvalSlug` | `app/(workspace)/` · `components/eval/HomeHubClient.tsx` · `HomeWorkspaceShell.tsx` · `EvalWorkspaceShell.tsx` · [technology.md §5](./technology.md) |
 | Live calibration (`/room/live-evaluation`), manager `?k=` gate, evaluator follow-along without key | [design-document.md §6.3](./design-document.md) · [technology.md §5](./technology.md) · `lib/use-registered-evaluator-id.ts`, `LiveEvaluationClient.tsx` |
 | Visual language, surface hierarchy, “no-line” layout, editorial density, chart line weights | [DESIGN.md](./DESIGN.md) |
 | Concrete hex/theme, app shell dimensions, heatmap/radar/checkbox styling, Tailwind/Material Symbols for build | [cyber_metric_dark_design_system.md](./cyber_metric_dark_design_system.md) |
 | Evaluator skill matrix UI (checkbox tree, manual mark, rationale) — reference implementation | [skill-evaluation.html](./skill-evaluation.html) |
 | Developer results dashboard layout — reference implementation | [developer-dashboard.html](./developer-dashboard.html) |
+| Team insights / calibration hub (dense shell) — reference HTML | [insights-hub.html](./insights-hub.html) |
 | Manager live evaluation (peer reveal queue, calibration matrix) — reference HTML | [live-group-evaluation.html](./live-group-evaluation.html) · App: `/room/live-evaluation` |
 | TypeScript competency definitions (hard/soft, shared level scale) | Repo `lib/skill-rubric-common.ts`, `lib/hard-skills-rubric.ts`, `lib/soft-skills-rubric.ts` |
 
