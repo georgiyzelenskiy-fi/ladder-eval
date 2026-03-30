@@ -1,13 +1,15 @@
 "use client";
 
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
 import {
   DEFAULT_SESSION_SLUG,
   DEVSYNC_STORAGE_NOTIFY_EVENT,
   lastEvalSlugStorageKey,
 } from "@/lib/devsync-constants";
-import type { Id } from "@/convex/_generated/dataModel";
 import { buildRoomHref } from "@/lib/room-url";
+import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -20,6 +22,58 @@ function humanizeSlug(slug: string) {
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+type SessionPhase = "preparation" | "live" | "finished";
+
+function sessionHeaderPill(
+  sessionRow: { phase: SessionPhase } | null | undefined,
+  slug: string,
+): {
+  dotClassName: string;
+  dotPulse: boolean;
+  phaseUpper: string;
+  title: string;
+} {
+  if (sessionRow === undefined) {
+    return {
+      dotClassName: "bg-on-surface-variant",
+      dotPulse: false,
+      phaseUpper: "Loading",
+      title: `Session “${slug}” — loading`,
+    };
+  }
+  if (sessionRow === null) {
+    return {
+      dotClassName: "bg-warning",
+      dotPulse: false,
+      phaseUpper: "Unavailable",
+      title: `Session “${slug}” — not found yet`,
+    };
+  }
+  const { phase } = sessionRow;
+  if (phase === "live") {
+    return {
+      dotClassName: "bg-success",
+      dotPulse: true,
+      phaseUpper: "Live",
+      title: `Session “${slug}” — live`,
+    };
+  }
+  if (phase === "preparation") {
+    return {
+      dotClassName: "bg-warning",
+      dotPulse: false,
+      phaseUpper: "Preparation",
+      title: `Session “${slug}” — preparation`,
+    };
+  }
+  return {
+    dotClassName: "bg-on-surface-variant",
+    dotPulse: false,
+    phaseUpper: "Finished",
+    title: `Session “${slug}” — finished`,
+  };
 }
 
 type NavItem = {
@@ -101,6 +155,13 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
     return `${MANAGE_PATH}?k=${encodeURIComponent(storedManagerKey)}`;
   }, [storedManagerKey]);
   const lastJoinedEvalSlug = useLastJoinedEvalSlug(roomSessionSlug);
+  const sessionRow = useQuery(api.session.getSession, {
+    slug: roomSessionSlug,
+  });
+  const sessionPill = useMemo(
+    () => sessionHeaderPill(sessionRow, roomSessionSlug),
+    [sessionRow, roomSessionSlug],
+  );
   const evalSlug = props.variant === "room" ? null : props.slug;
   const roomHeaderTitle = props.variant === "room" ? props.headerTitle : null;
   const roomSkillMatrixSlug =
@@ -173,15 +234,20 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
 
   const matrixChrome = useEvalMatrixChrome();
 
-  const avatarLetter =
-    evalSlug != null
-      ? humanizeSlug(evalSlug).charAt(0) || "?"
-      : (roomHeaderTitle?.charAt(0) ?? "?");
+  const avatarLetter = (() => {
+    if (matrixChrome?.signedInName) {
+      const t = matrixChrome.signedInName.trim();
+      return t ? t.charAt(0).toUpperCase() : "?";
+    }
+    if (!isRoom && evalSlug != null) {
+      const h = humanizeSlug(evalSlug);
+      return h ? h.charAt(0).toUpperCase() : "?";
+    }
+    const t = roomHeaderTitle?.trim();
+    return t ? t.charAt(0).toUpperCase() : "?";
+  })();
 
-  const avatarTitle =
-    matrixChrome?.signedInName && evalSlug != null
-      ? `${matrixChrome.signedInName} · ${humanizeSlug(evalSlug)}`
-      : undefined;
+  const avatarTitle = matrixChrome?.signedInName?.trim() || undefined;
 
   const contentClass =
     props.contentWrapperClassName ?? "space-y-8 p-8";
@@ -313,59 +379,71 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       <main className="ml-64 flex min-h-screen flex-col">
         <header className="sticky top-0 z-50 flex min-h-16 w-full shrink-0 flex-wrap items-center justify-between gap-3 border-b border-outline-variant/15 bg-surface/80 px-6 py-2 backdrop-blur-xl sm:px-8 sm:py-0">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="flex min-w-0 items-start gap-3 sm:items-center">
-              <div className="mt-1 h-8 w-0.5 shrink-0 bg-primary sm:mt-0" aria-hidden />
-              <h1 className="font-sans text-xs font-bold uppercase tracking-widest text-on-surface">
-                {evalSlug != null ? (
-                  <>
-                    <span className="text-on-surface-variant">Evaluation ·</span>{" "}
-                    {headerAccent}
-                    {props.variant !== "room" &&
-                    props.sessionSlug !== DEFAULT_SESSION_SLUG ? (
-                      <>
-                        {" "}
-                        <span className="font-mono text-[10px] font-bold normal-case tracking-normal text-on-surface-variant">
-                          · {props.sessionSlug}
-                        </span>
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  <>{headerAccent}</>
-                )}
-              </h1>
-            </div>
             {evalSlug != null && matrixChrome ? (
-              <label className="flex min-w-[min(100%,14rem)] max-w-md flex-1 flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant sm:min-w-[12rem]">
-                Subject
-                <select
-                  className="w-full cursor-pointer border-0 border-b border-outline-variant bg-transparent py-1.5 text-sm font-normal normal-case tracking-normal text-on-surface focus:border-primary focus:outline-none focus:ring-0"
-                  value={matrixChrome.selectedSubjectId}
-                  onChange={(e) =>
-                    matrixChrome.onSubjectChange(e.target.value as Id<"users">)
-                  }
-                >
-                  {matrixChrome.roster.map((u) => (
-                    <option
-                      key={u._id}
-                      value={u._id}
-                      className="bg-surface-container text-on-surface"
-                    >
-                      {u.name} ({u.slug})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+              <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+                <div
+                  className="mt-1 h-8 w-0.5 shrink-0 bg-primary sm:mt-0"
+                  aria-hidden
+                />
+                <label className="flex min-w-[min(100%,14rem)] max-w-md flex-1 flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant sm:min-w-[12rem]">
+                  Subject
+                  <select
+                    className="w-full cursor-pointer border-0 border-b border-primary/45 bg-transparent py-1.5 text-sm font-semibold normal-case tracking-normal text-primary focus:border-primary focus:outline-none focus:ring-0"
+                    value={matrixChrome.selectedSubjectId}
+                    onChange={(e) =>
+                      matrixChrome.onSubjectChange(
+                        e.target.value as Id<"users">,
+                      )
+                    }
+                  >
+                    {matrixChrome.roster.map((u) => (
+                      <option
+                        key={u._id}
+                        value={u._id}
+                        className="bg-surface-container text-on-surface"
+                      >
+                        {u.name} ({u.slug})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-start gap-3 sm:items-center">
+                <div
+                  className="mt-1 h-8 w-0.5 shrink-0 bg-primary sm:mt-0"
+                  aria-hidden
+                />
+                <h1 className="font-sans text-xs font-bold uppercase tracking-widest text-on-surface">
+                  {evalSlug != null ? (
+                    <>
+                      <span className="text-on-surface-variant">
+                        Evaluation ·
+                      </span>{" "}
+                      {headerAccent}
+                    </>
+                  ) : (
+                    <>{headerAccent}</>
+                  )}
+                </h1>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container px-3 py-1.5">
+            <div
+              className="flex max-w-[min(100%,22rem)] items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container px-3 py-1.5"
+              title={sessionPill.title}
+            >
               <div
-                className="h-2 w-2 animate-pulse rounded-full bg-success"
+                className={`h-2 w-2 shrink-0 rounded-full ${sessionPill.dotClassName} ${sessionPill.dotPulse ? "animate-pulse" : ""}`}
                 aria-hidden
               />
-              <span className="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">
-                Active session
+              <span className="min-w-0 truncate text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">
+                <span className="font-mono text-[10px] font-normal normal-case tracking-normal text-on-surface">
+                  {roomSessionSlug}
+                </span>
+                <span className="text-on-surface-variant/45"> · </span>
+                {sessionPill.phaseUpper}
               </span>
             </div>
             <div className="flex items-center gap-4 text-on-surface-variant">
@@ -383,8 +461,14 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               </span>
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-surface-container-highest text-xs font-bold text-on-surface-variant"
-                aria-hidden={!avatarTitle}
                 title={avatarTitle}
+                aria-label={
+                  avatarTitle
+                    ? `Signed in as ${avatarTitle}`
+                    : evalSlug != null
+                      ? `Evaluator ${humanizeSlug(evalSlug)}`
+                      : "Workspace"
+                }
               >
                 {avatarLetter}
               </div>
