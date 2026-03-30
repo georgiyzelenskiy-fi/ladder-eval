@@ -17,7 +17,7 @@ export default async function ManagePage({
   if (required && key !== required) {
     return (
       <div className="flex min-h-full flex-1 items-center justify-center px-6 py-16">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Not found.</p>
+        <p className="text-sm text-on-surface-variant">Not found.</p>
       </div>
     );
   }
@@ -25,9 +25,9 @@ export default async function ManagePage({
   if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     return (
       <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-on-surface-variant">
           Set{" "}
-          <code className="rounded bg-zinc-200/80 px-1.5 text-xs dark:bg-zinc-800">
+          <code className="rounded bg-surface-container px-1.5 text-xs text-on-surface">
             NEXT_PUBLIC_CONVEX_URL
           </code>{" "}
           in <code className="text-xs">.env.local</code>.
@@ -36,9 +36,5 @@ export default async function ManagePage({
     );
   }
 
-  return (
-    <div className="min-h-full flex-1 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <ManageClient managerKeyFromUrl={managerKeyFromUrl} />
-    </div>
-  );
+  return <ManageClient managerKeyFromUrl={managerKeyFromUrl} />;
 }

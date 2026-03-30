@@ -2,6 +2,17 @@
 
 @source "../components";
 
+/*
+  Preflight sets appearance on native buttons but does not set cursor.
+  Browsers use the default (arrow) for <button>; pointer matches typical UX.
+*/
+@layer base {
+  button:not(:disabled),
+  input:enabled:where([type="button"], [type="reset"], [type="submit"]) {
+    cursor: pointer;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
