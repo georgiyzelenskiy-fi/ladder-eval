@@ -189,27 +189,22 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const evalPath = evalSlug != null ? `/eval/${evalSlug}` : null;
   const onEval = evalPath != null && pathname === evalPath;
 
-  const skillMatrixItem: NavItem =
+  const skillMatrixNav: NavItem[] =
     evalSlug != null
-      ? { href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }
-      : skillMatrixHrefForRoom
-        ? {
-            href: skillMatrixHrefForRoom,
-            label: "Skill matrix",
-            icon: "hub",
-          }
-        : {
-            href: "#",
-            label: "Skill matrix",
-            icon: "hub",
-            disabled: true,
-            disabledTitle:
-              "Join via your /eval/your-slug link once in this browser, then this opens your matrix",
-          };
+      ? [{ href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }]
+      : skillMatrixHrefForRoom != null
+        ? [
+            {
+              href: skillMatrixHrefForRoom,
+              label: "Skill matrix",
+              icon: "hub",
+            },
+          ]
+        : [];
 
   const mainNav: NavItem[] = [
-    { href: "/", label: "Dashboard", icon: "dashboard", disabled: true },
-    skillMatrixItem,
+    { href: "/", label: "Home", icon: "home" },
+    ...skillMatrixNav,
     ...(isRoom
       ? ([
           {
@@ -221,8 +216,6 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
       : []),
     { href: driverHref, label: "Control room", icon: "analytics" },
     { href: liveCalHref, label: "Live calibration", icon: "groups" },
-    { href: "#", label: "Team insights", icon: "group", disabled: true },
-    { href: "#", label: "Repository", icon: "terminal", disabled: true },
   ];
 
   const headerAccent =
@@ -279,7 +272,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
 
         <nav className="flex flex-1 flex-col space-y-1">
           {mainNav.map((item) => {
-            const isDashboard =
+            const isHome =
               !item.disabled && item.href === "/" && pathname === "/";
             const isSkillMatrix =
               !item.disabled &&
@@ -306,7 +299,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               pathname.startsWith(MANAGE_PATH);
 
             const highlighted =
-              isDashboard ||
+              isHome ||
               isSkillMatrix ||
               isSkillMatrixRoom ||
               isControlRoom ||
@@ -351,33 +344,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
           })}
         </nav>
 
-        <div className="mt-auto px-6">
-          <button
-            type="button"
-            disabled
-            title="Not wired yet"
-            className="w-full cursor-not-allowed rounded-lg bg-primary-container py-3 text-xs font-bold uppercase tracking-widest text-on-primary-container opacity-60"
-          >
-            Submit evaluation
-          </button>
-          <div className="mt-6 space-y-4 border-t border-outline-variant/20 pt-6">
-            <span className="flex items-center gap-3 text-on-surface-variant">
-              <span className="material-symbols-outlined text-lg">sensors</span>
-              <span className="text-[10px] uppercase tracking-widest">
-                System status
-              </span>
-            </span>
-            <Link
-              href="/"
-              className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-on-surface"
-            >
-              <span className="material-symbols-outlined text-lg">menu_book</span>
-              <span className="text-[10px] uppercase tracking-widest">
-                Documentation
-              </span>
-            </Link>
-          </div>
-        </div>
+        <div className="mt-auto px-6 pb-6" />
       </aside>
 
       <main className="ml-64 flex min-h-screen flex-col">
