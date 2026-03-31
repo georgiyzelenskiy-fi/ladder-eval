@@ -148,3 +148,63 @@ export function calibrationMarkFor(
   );
   return m?.mark;
 }
+
+/**
+ * Heatmap baseline per skill column: calibration mark if present; else mean of
+ * evaluators’ manual marks for that skill; else mean of UI estimates.
+ */
+export function heatmapSkillBaseline(params: {
+  subjectId: Id<"users">;
+  skillId: string;
+  evaluations: Doc<"evaluations">[];
+  evaluatorIds: readonly Id<"users">[];
+  calibrationMark?: number;
+}): number | null {
+  const cal = params.calibrationMark;
+  if (cal !== undefined && cal !== null && Number.isFinite(cal)) {
+    return cal;
+  }
+
+  const manuals: number[] = [];
+  const uis: number[] = [];
+
+  for (const evId of params.evaluatorIds) {
+    const row = findEvaluation(
+      params.evaluations,
+      evId,
+      params.subjectId,
+      params.skillId,
+    );
+    const insight = insightForEvaluationRow(row, params.skillId);
+    const m = row?.manualMark;
+    if (m !== undefined && m !== null && Number.isFinite(m)) {
+      manuals.push(m);
+    }
+    if (insight) {
+      uis.push(insight.foundation.uiEstimate);
+    }
+  }
+
+  if (manuals.length > 0) {
+    return manuals.reduce((a, b) => a + b, 0) / manuals.length;
+  }
+  if (uis.length > 0) {
+    return uis.reduce((a, b) => a + b, 0) / uis.length;
+  }
+  return null;
+}
+
+/** Value compared to baseline: manual mark when set, otherwise UI estimate. */
+export function heatmapCellCompareValue(
+  row: Doc<"evaluations"> | undefined,
+  insight: CellInsight | null,
+): number | null {
+  const m = row?.manualMark;
+  if (m !== undefined && m !== null && Number.isFinite(m)) {
+    return m;
+  }
+  if (insight) {
+    return insight.foundation.uiEstimate;
+  }
+  return null;
+}

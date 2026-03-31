@@ -16,6 +16,8 @@ import {
   calibrationMarkFor,
   evaluatorsSorted,
   findEvaluation,
+  heatmapCellCompareValue,
+  heatmapSkillBaseline,
   insightForEvaluationRow,
   INSIGHTS_ALL_SKILL_IDS,
   radarSkillIdsForGroup,
@@ -42,6 +44,29 @@ const EVALUATOR_COLORS = [
   "#e9c46a",
   "#2a9d8f",
 ] as const;
+
+/** Diff on 0–5 rubric; at/above this magnitude the cell reads as fully “far” (red end). */
+const HEATMAP_FULL_RED_AT = 2.25;
+
+function heatmapDeviationSurface(diff: number): {
+  backgroundColor: string;
+  borderColor: string;
+} {
+  const t = Math.min(1, Math.max(0, diff / HEATMAP_FULL_RED_AT));
+  const gR = 34;
+  const gG = 197;
+  const gB = 94;
+  const rR = 255;
+  const rG = 113;
+  const rB = 108;
+  const r = Math.round(gR + (rR - gR) * t);
+  const g = Math.round(gG + (rG - gG) * t);
+  const b = Math.round(gB + (rB - gB) * t);
+  return {
+    backgroundColor: `rgba(${r},${g},${b},0.22)`,
+    borderColor: `rgba(${r},${g},${b},0.45)`,
+  };
+}
 
 const ERROR_COPY: Record<string, string> = {
   SESSION_NOT_FOUND: "Session not found. Check the session link or open Team setup.",
@@ -99,15 +124,15 @@ function SkillDetailModal({
   return (
     <dialog
       ref={dialogRef}
-      className="max-h-[90vh] w-[min(96vw,56rem)] rounded-xl border border-outline-variant/25 bg-surface-container p-0 text-on-surface shadow-2xl backdrop:bg-black/60"
+      className="fixed left-1/2 top-1/2 z-50 h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-h-none max-w-none -translate-x-1/2 -translate-y-1/2 rounded-xl border border-outline-variant/25 bg-surface-container p-0 text-on-surface shadow-2xl backdrop:bg-black/60"
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
     >
-      <div className="flex max-h-[90vh] flex-col sm:flex-row">
-        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-5">
+      <div className="flex h-full max-h-[inherit] min-h-0 flex-col sm:flex-row">
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-5 sm:p-6">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-black uppercase tracking-widest text-primary">
@@ -195,7 +220,7 @@ function SkillDetailModal({
             </table>
           </div>
         </div>
-        <aside className="max-h-[40vh] shrink-0 overflow-y-auto border-t border-outline-variant/20 bg-surface-container-low p-4 sm:max-h-none sm:w-56 sm:border-l sm:border-t-0">
+        <aside className="max-h-[min(40vh,14rem)] shrink-0 overflow-y-auto border-t border-outline-variant/20 bg-surface-container-low p-4 sm:max-h-none sm:w-72 sm:border-l sm:border-t-0">
           <h3 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
             Point legend
           </h3>
@@ -301,6 +326,26 @@ export function SubjectInsightsClient({
       skillIds: radarSkillIds,
     });
   }, [subject, evaluations, evaluators, radarSkillIds]);
+
+  const heatmapBaselinesBySkill = useMemo(() => {
+    const out = new Map<string, number | null>();
+    if (!subject) return out;
+    const evaluatorIds = evaluators.map((e) => e._id);
+    for (const sid of INSIGHTS_ALL_SKILL_IDS) {
+      const cal = calibrationMarkFor(calibrationMarks, subject._id, sid);
+      out.set(
+        sid,
+        heatmapSkillBaseline({
+          subjectId: subject._id,
+          skillId: sid,
+          evaluations,
+          evaluatorIds,
+          calibrationMark: cal,
+        }),
+      );
+    }
+    return out;
+  }, [subject, evaluations, evaluators, calibrationMarks]);
 
   const radarSeries = useMemo(() => {
     const out: {
@@ -493,35 +538,42 @@ export function SubjectInsightsClient({
               Aggregate heatmap
             </h2>
             <p className="text-xs text-on-surface-variant">
-              All ten competencies · click a cell for checkpoint detail.
+              Each cell: manual mark (top, — if none) and UI estimate (bottom).
+              Click for checkpoints.
             </p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-on-surface-variant">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-on-surface-variant">
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-success" /> Met
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-error" /> Gap
+              <span className="h-2 w-8 rounded-full bg-gradient-to-r from-[rgb(34,197,94)] to-[rgb(255,113,108)]" />
+              Cell color = distance to baseline (calibrated → else team mean)
             </span>
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-max min-w-full border-collapse text-left">
+          <table className="w-full min-w-[62rem] table-fixed border-collapse text-left">
+            <colgroup>
+              <col className="w-[9.5rem]" />
+              {INSIGHTS_ALL_SKILL_IDS.map((sid) => (
+                <col key={sid} className="w-[4.75rem]" />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 min-w-[8rem] bg-surface-container-low py-2 pr-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                <th className="sticky left-0 z-10 bg-surface-container-low py-2 pr-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Evaluator
                 </th>
                 {INSIGHTS_ALL_SKILL_IDS.map((sid) => {
                   const c = getSkillCompetencyById(MATRIX_COMPETENCIES, sid);
+                  const label = c?.name ?? sid;
                   return (
-                    <th key={sid} className="px-1 py-2 align-bottom">
+                    <th key={sid} className="px-0.5 py-2 align-bottom">
                       <button
                         type="button"
-                        className="flex max-w-[5.5rem] flex-col items-center gap-1 text-center text-[9px] font-bold uppercase leading-tight tracking-tight text-primary hover:underline"
+                        title={label}
+                        className="flex w-full min-w-0 flex-col items-center gap-1 text-center text-[9px] font-bold uppercase leading-tight tracking-tight text-primary hover:underline"
                         onClick={() => setModalSkillId(sid)}
                       >
-                        <span className="line-clamp-3">{c?.name ?? sid}</span>
+                        <span className="line-clamp-3 break-words">{label}</span>
                       </button>
                     </th>
                   );
@@ -531,7 +583,7 @@ export function SubjectInsightsClient({
             <tbody>
               {evaluators.map((ev) => (
                 <tr key={ev._id} className="border-t border-outline-variant/10">
-                  <td className="sticky left-0 z-10 bg-surface-container-low py-2 pr-3 text-xs font-medium text-on-surface">
+                  <td className="sticky left-0 z-10 max-w-[9.5rem] truncate bg-surface-container-low py-2 pr-2 text-xs font-medium text-on-surface">
                     {ev.name}
                   </td>
                   {INSIGHTS_ALL_SKILL_IDS.map((sid) => {
@@ -542,28 +594,53 @@ export function SubjectInsightsClient({
                       sid,
                     );
                     const insight = insightForEvaluationRow(row, sid);
-                    const gap = insight?.foundationGap ?? true;
-                    const L = insight?.foundation.baseLevel ?? 0;
+                    const baseline = heatmapBaselinesBySkill.get(sid) ?? null;
+                    const compare = heatmapCellCompareValue(row, insight);
+                    const diff =
+                      baseline !== null && compare !== null
+                        ? Math.abs(compare - baseline)
+                        : null;
+                    const surface =
+                      diff !== null ? heatmapDeviationSurface(diff) : null;
+                    const manual = row?.manualMark;
+                    const manualLine =
+                      manual !== undefined &&
+                      manual !== null &&
+                      Number.isFinite(manual)
+                        ? manual.toFixed(1)
+                        : "—";
+                    const uiLine = insight
+                      ? insight.foundation.uiEstimate.toFixed(1)
+                      : "—";
+                    const hasPremature =
+                      insight &&
+                      insight.foundation.prematurePeakLevels.length > 0;
                     return (
-                      <td key={sid} className="px-1 py-1">
+                      <td key={sid} className="px-0.5 py-1 align-middle">
                         <button
                           type="button"
                           onClick={() => setModalSkillId(sid)}
-                          className={`flex min-h-[4.5rem] w-full min-w-[4.5rem] flex-col items-center justify-center gap-1 rounded-md border border-outline-variant/10 px-1 py-2 text-center transition-opacity hover:opacity-95 ${
-                            gap
-                              ? "bg-error/25 text-error"
-                              : "bg-success/20 text-success"
+                          className={`flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-0.5 rounded-md border px-0.5 py-1.5 text-center tabular-nums transition-opacity hover:opacity-95 ${
+                            surface === null
+                              ? "border-outline-variant/25 bg-surface-container-high/50"
+                              : ""
                           }`}
+                          style={
+                            surface
+                              ? {
+                                  backgroundColor: surface.backgroundColor,
+                                  borderColor: surface.borderColor,
+                                }
+                              : undefined
+                          }
                         >
-                          <span className="font-mono text-[10px] font-bold">
-                            L{L}
+                          <span className="text-[11px] font-semibold leading-tight text-on-surface">
+                            {manualLine}
                           </span>
-                          <span className="text-[8px] font-bold uppercase leading-tight">
-                            {gap ? "Gap" : "Met"}
+                          <span className="text-[10px] font-medium leading-tight text-on-surface/80">
+                            {uiLine}
                           </span>
-                          {insight &&
-                          insight.foundation.prematurePeakLevels.length >
-                            0 ? (
+                          {hasPremature ? (
                             <span
                               className="text-[8px] text-warning"
                               title="Out-of-sequence strengths"
@@ -578,7 +655,7 @@ export function SubjectInsightsClient({
                 </tr>
               ))}
               <tr className="border-t border-outline-variant/20 bg-surface-container/40">
-                <td className="sticky left-0 z-10 bg-surface-container/40 py-2 pr-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                <td className="sticky left-0 z-10 max-w-[9.5rem] truncate bg-surface-container/40 py-2 pr-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Calibrated
                 </td>
                 {INSIGHTS_ALL_SKILL_IDS.map((sid) => {
@@ -588,7 +665,7 @@ export function SubjectInsightsClient({
                     sid,
                   );
                   return (
-                    <td key={sid} className="px-1 py-2 text-center">
+                    <td key={sid} className="px-0.5 py-2 text-center">
                       <span className="font-mono text-xs font-semibold text-on-surface">
                         {m !== undefined ? m.toFixed(1) : "—"}
                       </span>
