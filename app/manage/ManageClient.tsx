@@ -11,6 +11,7 @@ import {
   readManageSessionSlug,
   writeManageSessionSlug,
 } from "@/lib/manage-session-storage";
+import { buildInsightsHref } from "@/lib/room-url";
 import { normalizeSessionSlug } from "@/lib/session-slug";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -115,6 +116,15 @@ export function ManageClient({ managerKeyFromUrl }: Props) {
         };
       });
   }, [roster, activeSlug]);
+
+  const insightsUrlForSlug = useCallback(
+    (userSlug: string) => {
+      if (typeof window === "undefined" || !activeSlug) return "";
+      const origin = window.location.origin;
+      return `${origin}${buildInsightsHref(userSlug, activeSlug)}`;
+    },
+    [activeSlug],
+  );
 
   const copyText = async (text: string) => {
     try {
@@ -318,6 +328,23 @@ export function ManageClient({ managerKeyFromUrl }: Props) {
                             </button>
                           </div>
                         ) : null}
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            Insights (charts)
+                          </span>
+                          <code className="max-w-full break-all text-[11px] text-zinc-600 dark:text-zinc-400">
+                            {insightsUrlForSlug(u.slug)}
+                          </code>
+                          <button
+                            type="button"
+                            className="text-xs text-violet-700 underline dark:text-violet-400"
+                            onClick={() =>
+                              void copyText(insightsUrlForSlug(u.slug))
+                            }
+                          >
+                            Copy
+                          </button>
+                        </div>
                       </div>
                       <button
                         type="button"

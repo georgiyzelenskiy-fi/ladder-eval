@@ -3,8 +3,11 @@
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
-import { DEFAULT_SESSION_SLUG } from "@/lib/devsync-constants";
-import { buildRoomHref } from "@/lib/room-url";
+import {
+  buildEvalHref,
+  buildInsightsHref,
+  buildRoomHref,
+} from "@/lib/room-url";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,12 +108,28 @@ type RoomVariantProps = {
   skillMatrixSlug?: string;
 };
 
-export type EvalWorkspaceShellProps = EvalVariantProps | RoomVariantProps;
+type InsightsVariantProps = {
+  variant: "insights";
+  /** Subject under review (`users.slug`). */
+  subjectSlug: string;
+  sessionSlug: string;
+  /** Resolved display name from roster (optional). */
+  subjectDisplayName?: string;
+  children: ReactNode;
+  contentWrapperClassName?: string;
+};
+
+export type EvalWorkspaceShellProps =
+  | EvalVariantProps
+  | RoomVariantProps
+  | InsightsVariantProps;
 
 export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const pathname = usePathname();
   const storedManagerKey = useStoredManagerAccessKey();
+  const matrixChrome = useEvalMatrixChrome();
   const isRoom = props.variant === "room";
+  const isInsights = props.variant === "insights";
   const roomSessionSlug =
     props.variant === "room"
       ? props.roomSessionSlug
@@ -135,49 +154,75 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
     () => sessionHeaderPill(sessionRow, roomSessionSlug),
     [sessionRow, roomSessionSlug],
   );
-  const evalSlug = props.variant === "room" ? null : props.slug;
-  const roomHeaderTitle = props.variant === "room" ? props.headerTitle : null;
+  const evalSlug =
+    props.variant === "room" || isInsights ? null : props.slug;
+  const roomHeaderTitle =
+    props.variant === "room"
+      ? props.headerTitle
+      : isInsights
+        ? (props.subjectDisplayName ?? humanizeSlug(props.subjectSlug))
+        : null;
   const roomSkillMatrixSlug =
     props.variant === "room" ? props.skillMatrixSlug : undefined;
 
-  const roomResolvedMatrixSlug =
-    isRoom && (roomSkillMatrixSlug ?? lastJoinedEvalSlug)
-      ? (roomSkillMatrixSlug ?? lastJoinedEvalSlug)!
+  const matrixSlugForNav: string | null =
+    props.variant === "eval"
+      ? props.slug
+      : isRoom
+        ? (roomSkillMatrixSlug ?? lastJoinedEvalSlug) ?? null
+        : isInsights
+          ? lastJoinedEvalSlug
+          : null;
+
+  const skillMatrixHref =
+    matrixSlugForNav != null
+      ? buildEvalHref(matrixSlugForNav, roomSessionSlug)
       : null;
 
-  const skillMatrixHrefForRoom =
-    roomResolvedMatrixSlug != null
-      ? (() => {
-          const u = new URLSearchParams();
-          if (roomSessionSlug !== DEFAULT_SESSION_SLUG) {
-            u.set("session", roomSessionSlug);
-          }
-          const q = u.toString();
-          return q
-            ? `/eval/${roomResolvedMatrixSlug}?${q}`
-            : `/eval/${roomResolvedMatrixSlug}`;
-        })()
-      : null;
+  const skillMatrixPathname =
+    matrixSlugForNav != null ? `/eval/${matrixSlugForNav}` : null;
 
-  const evalPath = evalSlug != null ? `/eval/${evalSlug}` : null;
-  const onEval = evalPath != null && pathname === evalPath;
+  const insightsSubjectSlugForNav = isInsights ? props.subjectSlug : null;
+
+  const subjectInsightsHref = useMemo(() => {
+    if (insightsSubjectSlugForNav != null) {
+      return buildInsightsHref(insightsSubjectSlugForNav, roomSessionSlug);
+    }
+    if (isInsights || isRoom) return null;
+    const chrome = matrixChrome;
+    if (!chrome) return null;
+    const su = chrome.roster.find(
+      (u) => u._id === chrome.selectedSubjectId,
+    );
+    return su ? buildInsightsHref(su.slug, roomSessionSlug) : null;
+  }, [
+    insightsSubjectSlugForNav,
+    isInsights,
+    isRoom,
+    matrixChrome,
+    roomSessionSlug,
+  ]);
+
+  const insightsNav: NavItem[] =
+    subjectInsightsHref != null
+      ? [
+          {
+            href: subjectInsightsHref,
+            label: "Subject insights",
+            icon: "bubble_chart",
+          },
+        ]
+      : [];
 
   const skillMatrixNav: NavItem[] =
-    evalSlug != null
-      ? [{ href: `/eval/${evalSlug}`, label: "Skill matrix", icon: "hub" }]
-      : skillMatrixHrefForRoom != null
-        ? [
-            {
-              href: skillMatrixHrefForRoom,
-              label: "Skill matrix",
-              icon: "hub",
-            },
-          ]
-        : [];
+    skillMatrixHref != null
+      ? [{ href: skillMatrixHref, label: "Skill matrix", icon: "hub" }]
+      : [];
 
   const mainNav: NavItem[] = [
     { href: "/", label: "Home", icon: "home" },
     ...skillMatrixNav,
+    ...insightsNav,
     ...(isRoom
       ? ([
           {
@@ -192,22 +237,31 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   ];
 
   const headerAccent =
-    evalSlug != null ? (
+    isInsights ? (
+      <>
+        <span className="text-on-surface-variant">Insights ·</span>{" "}
+        <span className="text-primary">
+          {props.subjectDisplayName ?? humanizeSlug(props.subjectSlug)}
+        </span>
+      </>
+    ) : evalSlug != null ? (
       <span className="text-primary">{humanizeSlug(evalSlug)}</span>
     ) : (
       <span className="text-on-surface">{roomHeaderTitle ?? ""}</span>
     );
-
-  const matrixChrome = useEvalMatrixChrome();
 
   const avatarLetter = (() => {
     if (matrixChrome?.signedInName) {
       const t = matrixChrome.signedInName.trim();
       return t ? t.charAt(0).toUpperCase() : "?";
     }
-    if (!isRoom && evalSlug != null) {
+    if (!isRoom && !isInsights && evalSlug != null) {
       const h = humanizeSlug(evalSlug);
       return h ? h.charAt(0).toUpperCase() : "?";
+    }
+    if (isInsights) {
+      const t = (props.subjectDisplayName ?? props.subjectSlug).trim();
+      return t ? t.charAt(0).toUpperCase() : "?";
     }
     const t = roomHeaderTitle?.trim();
     return t ? t.charAt(0).toUpperCase() : "?";
@@ -216,7 +270,12 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const avatarTitle = matrixChrome?.signedInName?.trim() || undefined;
   const avatarHoverLabel =
     avatarTitle ??
-    (!isRoom && evalSlug != null ? humanizeSlug(evalSlug) : undefined) ??
+    (!isRoom && !isInsights && evalSlug != null
+      ? humanizeSlug(evalSlug)
+      : undefined) ??
+    (isInsights
+      ? (props.subjectDisplayName ?? humanizeSlug(props.subjectSlug))
+      : undefined) ??
     (roomHeaderTitle?.trim() ? roomHeaderTitle.trim() : undefined);
 
   const contentClass =
@@ -249,15 +308,13 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               !item.disabled && item.href === "/" && pathname === "/";
             const isSkillMatrix =
               !item.disabled &&
-              evalPath != null &&
-              item.href === evalPath &&
-              onEval;
-            const isSkillMatrixRoom =
+              item.label === "Skill matrix" &&
+              skillMatrixPathname != null &&
+              pathname === skillMatrixPathname;
+            const isSubjectInsights =
               !item.disabled &&
-              isRoom &&
-              skillMatrixHrefForRoom != null &&
-              item.href === skillMatrixHrefForRoom &&
-              pathname === `/eval/${roomResolvedMatrixSlug}`;
+              item.label === "Subject insights" &&
+              pathname.startsWith("/insights/");
             const isControlRoom =
               !item.disabled &&
               pathname.startsWith(DRIVER_PATH) &&
@@ -274,7 +331,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
             const highlighted =
               isHome ||
               isSkillMatrix ||
-              isSkillMatrixRoom ||
+              isSubjectInsights ||
               isControlRoom ||
               isLiveCal ||
               isTeamSetup;
@@ -414,7 +471,9 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
                       ? `Signed in as ${avatarTitle}`
                       : evalSlug != null
                         ? `Evaluator ${humanizeSlug(evalSlug)}`
-                        : "Workspace"
+                        : isInsights
+                          ? `Insights · ${props.subjectDisplayName ?? humanizeSlug(props.subjectSlug)}`
+                          : "Workspace"
                   }
                 >
                   {avatarLetter}

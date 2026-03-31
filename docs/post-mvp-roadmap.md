@@ -48,7 +48,7 @@
 
 | Item | Notes |
 |------|--------|
-| **Heatmap + spider (radar) chart** | Per design doc §5: personal and team views with **heatmap** (criteria × people) and **radar** comparison. Still required for closing the feedback loop after calibration. |
+| **Heatmap + spider (radar) chart** | **Partial (2026-03):** per-subject **shareable** route **`/insights/[users.slug]`** (`?session=` when not default) — multi-evaluator **radar** (hard/soft five-skill switch, UI vs manual toggles) + **10-skill heatmap**, skill **modal** with checkpoint grid; **`insights.getSubjectInsightsBundle`** + phase/manager gates. Team-wide comparison view still optional later. |
 
 ---
 
@@ -73,6 +73,6 @@
 | Eval sticky subject + live emphasis | `EvaluatorMatrix.tsx` (or equivalent), `session.activeRevealSkillId` / live-eval bundle subscription |
 | SkillBlock level panels (collapse + summary) | `components/eval/SkillBlock.tsx` (`parentCheckpointOn`, per-level open state) |
 | Auth | `convex/users.ts`, join flows, env secrets, future IdP |
-| Charts | new route or `developer-dashboard` evolution, `lib/scoring.ts` aggregates |
+| Charts | `app/insights/[subjectSlug]/`, `lib/subject-insights-pivot.ts`, Recharts radar chunk, `convex/insights.ts` |
 
 When implementing, update this doc (check off or split into tickets) so the backlog stays honest.

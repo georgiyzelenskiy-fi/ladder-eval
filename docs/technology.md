@@ -35,6 +35,7 @@ Modules: `convex/session.ts`, `convex/users.ts`, `convex/evaluations.ts`, `conve
 * **`evaluations.getLiveScores`**: Returns evaluation rows plus a coarse per-subject checkpoint summary for manager “progress” views.
 * **`evaluations.listEvaluationsForSession`**: Raw rows for a session (e.g. custom aggregations).
 * **`liveEvaluation.getLiveEvalBundle`**: Session live-eval slice, roster, evaluations, and `calibrationMarks` for the manager live-evaluation UI.
+* **`insights.getSubjectInsightsBundle`**: Roster-scoped bundle for **one subject’s** evaluations + calibration marks; gated by manager key and/or registered roster user + session phase (evaluators blocked during **preparation**).
 
 ### Mutations (Write Data)
 * **`session.ensureSession`**: Creates the session row for a slug if missing (bootstrap).
@@ -51,9 +52,10 @@ Modules: `convex/session.ts`, `convex/users.ts`, `convex/evaluations.ts`, `conve
 To avoid the complexity of Auth0 or NextAuth:
 1.  **Manager access:** Landing hub at **`/`** (`app/(workspace)/`, **`HomeHubClient`** + **`HomeWorkspaceShell`**) shares the same sidebar/header chrome as eval and room routes. Team setup at **`/manage`** (same shell via **`ManageWorkspaceShell`**); control room at **`/room/driver`**; live evaluation at **`/room/live-evaluation`** (optional **`MANAGER_ACCESS_KEY`** gate via **`?k=…`** on those routes). See `.env.local.example`.
 2.  **Evaluator access:** One URL per participant, e.g. **`/eval/dev-1`**. The manager copies links from **`/manage`**. For any session other than **`default`**, URLs include **`?session=<sessions.slug>`** so the app resolves the correct round (evaluator `slug` is unique per session, not globally). See [design-document.md §6.3](./design-document.md).
-3.  **Persistence:** On first visit, the evaluator enters their name; Convex `users.joinSession` runs and the returned **`userId`** is stored in **`localStorage`** (key includes session slug + evaluator slug; see `lib/devsync-constants.ts`).
-4.  **Live-eval page (`/room/live-evaluation`):** When the manager key gate is on, browsers **without** a stored manager key still load the page if **`useRegisteredEvaluatorId`** (`lib/use-registered-evaluator-id.ts`) finds a **registered evaluator** id for that session slug on the roster; they get **follow-along** (reveal progress, matrices) without **`?k=`**. Managers still need the key to mutate session state.
-5.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
+3.  **Subject insights (charts):** **`/insights/<users.slug>`** with the same **`?session=`** rule — shareable radar + heatmap for one evaluation target. Managers may open anytime; evaluators need a registered browser session and a phase of **live** or **finished** (prep stays private). Team setup lists a **Copy** link per roster row.
+4.  **Persistence:** On first visit, the evaluator enters their name; Convex `users.joinSession` runs and the returned **`userId`** is stored in **`localStorage`** (key includes session slug + evaluator slug; see `lib/devsync-constants.ts`).
+5.  **Live-eval page (`/room/live-evaluation`):** When the manager key gate is on, browsers **without** a stored manager key still load the page if **`useRegisteredEvaluatorId`** (`lib/use-registered-evaluator-id.ts`) finds a **registered evaluator** id for that session slug on the roster; they get **follow-along** (reveal progress, matrices) without **`?k=`**. Managers still need the key to mutate session state.
+6.  **Security:** For an MVP, we trust users not to swap URLs during the 30-minute call.
 
 ## 6. Real-time Logic Flow (The "Convex way")
 Instead of `useEffect` and `fetch`, the UI will use the `useQuery` hook:
