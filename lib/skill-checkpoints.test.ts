@@ -6,6 +6,7 @@ import {
   competencyCheckpointDisplayRows,
   competencyToCheckpoints,
   groupCheckpointDisplayRows,
+  parentCheckpointMet,
 } from "./skill-checkpoints";
 
 describe("competencyCheckpointDisplayRows", () => {
@@ -40,6 +41,29 @@ describe("groupCheckpointDisplayRows", () => {
     expect(g).toHaveLength(1);
     expect(g[0]!.parent.id).toBe("a");
     expect(g[0]!.nested.map((x) => x.id)).toEqual(["b", "c"]);
+  });
+});
+
+describe("parentCheckpointMet", () => {
+  it("is true for leaf parent when parent id is checked", () => {
+    const rows = [
+      { id: "a", level: 1 as const, text: "p", nested: false },
+    ];
+    const groups = groupCheckpointDisplayRows(rows);
+    expect(parentCheckpointMet(groups[0]!, new Set(["a"]))).toBe(true);
+    expect(parentCheckpointMet(groups[0]!, new Set())).toBe(false);
+  });
+
+  it("is true for parent with nested only when every nested is checked", () => {
+    const rows = [
+      { id: "a", level: 1 as const, text: "p", nested: false },
+      { id: "b", level: 1 as const, text: "n1", nested: true },
+      { id: "c", level: 1 as const, text: "n2", nested: true },
+    ];
+    const groups = groupCheckpointDisplayRows(rows);
+    const g = groups[0]!;
+    expect(parentCheckpointMet(g, new Set(["b", "c"]))).toBe(true);
+    expect(parentCheckpointMet(g, new Set(["b"]))).toBe(false);
   });
 });
 

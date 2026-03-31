@@ -71,7 +71,7 @@
 | Non-manager UI | `LiveEvaluationClient.tsx`, `canManage` / `useRegisteredEvaluatorId`, room layout |
 | Skill grouping / session scope | `lib/*-skills-rubric.ts`, matrix competency list assembly, optional `sessions` fields |
 | Eval sticky subject + live emphasis | `EvaluatorMatrix.tsx` (or equivalent), `session.activeRevealSkillId` / live-eval bundle subscription |
-| SkillBlock level panels (collapse + summary) | `components/eval/SkillBlock.tsx` (`parentCheckpointOn`, per-level open state) |
+| SkillBlock level panels (collapse + summary) | `components/eval/SkillBlock.tsx` (`parentCheckpointMet`, per-level open state) |
 | Auth | `convex/users.ts`, join flows, env secrets, future IdP |
 | Charts | `app/insights/[subjectSlug]/`, `lib/subject-insights-pivot.ts`, Recharts radar chunk, `convex/insights.ts` |
 

@@ -99,6 +99,17 @@ export function groupCheckpointDisplayRows(
   return groups;
 }
 
+/** Parent “point” met: leaf parent uses its id; with nested children, all nested must be checked. */
+export function parentCheckpointMet(
+  group: CheckpointDisplayGroup,
+  checked: ReadonlySet<string>,
+): boolean {
+  const hasNested = group.nested.length > 0;
+  return hasNested
+    ? group.nested.every((n) => checked.has(n.id))
+    : checked.has(group.parent.id);
+}
+
 /**
  * For each parent with subcriteria: parent counts as checked iff every nested row is checked.
  * Used so scoring matches nested-first semantics even if legacy rows only toggled children.

@@ -6,6 +6,7 @@ import {
   competencyCheckpointDisplayRows,
   competencyToCheckpoints,
   groupCheckpointDisplayRows,
+  parentCheckpointMet,
   type CheckpointDisplayGroup,
 } from "@/lib/skill-checkpoints";
 import { computeFoundationFirstUiEstimate } from "@/lib/scoring";
@@ -27,17 +28,6 @@ const COMPETENCY_ICONS: Record<string, string> = {
 
 function competencyIcon(id: string) {
   return COMPETENCY_ICONS[id] ?? "widgets";
-}
-
-/** Met state for the top-level “point” row (collapsed summary uses this; nested = all children). */
-function parentCheckpointOn(
-  group: CheckpointDisplayGroup,
-  checked: Set<string>,
-): boolean {
-  const hasNested = group.nested.length > 0;
-  return hasNested
-    ? group.nested.every((n) => checked.has(n.id))
-    : checked.has(group.parent.id);
 }
 
 /** Collapsed level strip: same glyph + sizing as expanded parent row (`check_circle` / `circle`). */
@@ -347,7 +337,7 @@ export function SkillBlock({
                       groupsAt.map((group, pointIndex) => (
                         <LevelSummaryPointChip
                           key={group.parent.id}
-                          met={parentCheckpointOn(group, checked)}
+                          met={parentCheckpointMet(group, checked)}
                           pointIndex={pointIndex}
                         />
                       ))
@@ -359,7 +349,7 @@ export function SkillBlock({
               <div className="space-y-2 p-3 sm:p-4">
                 {groupsAt.map((group) => {
                   const hasNested = group.nested.length > 0;
-                  const parentOn = parentCheckpointOn(group, checked);
+                  const parentOn = parentCheckpointMet(group, checked);
                   const anyNestedOn =
                     hasNested &&
                     group.nested.some((n) => checked.has(n.id));

@@ -8,6 +8,8 @@ import {
   applyParentNestedCheckpointConsistency,
   competencyCheckpointDisplayRows,
   groupCheckpointDisplayRows,
+  parentCheckpointMet,
+  type CheckpointDisplayGroup,
 } from "@/lib/skill-checkpoints";
 import { getSkillCompetencyById } from "@/lib/skill-rubric-common";
 import { MATRIX_COMPETENCIES } from "@/lib/matrix-competencies";
@@ -78,6 +80,99 @@ const ERROR_COPY: Record<string, string> = {
     "Peer evaluation details stay private until the session moves to Live or Finished.",
 };
 
+function effectiveCheckedForEvaluator(
+  evaluations: Doc<"evaluations">[],
+  evaluatorId: Id<"users">,
+  subjectId: Id<"users">,
+  skillId: string,
+  groups: readonly CheckpointDisplayGroup[],
+): Set<string> {
+  const row = findEvaluation(evaluations, evaluatorId, subjectId, skillId);
+  const checked = new Set<string>();
+  const map = row?.checkpoints ?? {};
+  for (const [k, v] of Object.entries(map)) {
+    if (v) checked.add(k);
+  }
+  return applyParentNestedCheckpointConsistency(checked, groups);
+}
+
+/**
+ * Levels 1–2 default to collapsed when every evaluator has every parent point
+ * at that level met (same “point” semantics as /eval collapsed strip).
+ */
+function defaultInsightLevelPanelsOpen(params: {
+  groupsByLevel: Map<number, CheckpointDisplayGroup[]>;
+  evaluators: Doc<"users">[];
+  getEffective: (evaluatorId: Id<"users">) => ReadonlySet<string>;
+}): Record<number, boolean> {
+  const out: Record<number, boolean> = {
+    1: true,
+    2: true,
+    3: true,
+    4: true,
+    5: true,
+  };
+  for (const level of [1, 2] as const) {
+    const groupsAt = params.groupsByLevel.get(level) ?? [];
+    if (groupsAt.length === 0) continue;
+    let allMetEveryEvaluator = true;
+    for (const ev of params.evaluators) {
+      const eff = params.getEffective(ev._id);
+      for (const g of groupsAt) {
+        if (!parentCheckpointMet(g, eff)) {
+          allMetEveryEvaluator = false;
+          break;
+        }
+      }
+      if (!allMetEveryEvaluator) break;
+    }
+    if (allMetEveryEvaluator) out[level] = false;
+  }
+  return out;
+}
+
+/** Read-only met glyph aligned with `SkillBlock` `LevelSummaryPointChip`. */
+function InsightCheckpointMetGlyph({
+  met,
+  state,
+  label,
+}: {
+  met?: boolean;
+  state?: "all" | "some" | "none";
+  label: string;
+}) {
+  const resolvedState = state ?? (met ? "all" : "none");
+
+  let icon = "circle";
+  let classes = "text-on-surface-variant";
+  if (resolvedState === "all") {
+    icon = "check_circle";
+    classes = "fill-on text-primary";
+  } else if (resolvedState === "some") {
+    icon = "check_circle";
+    classes = "text-primary/70";
+  }
+
+  return (
+    <span className="inline-flex shrink-0 items-center" title={label}>
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={resolvedState === "all"}
+        disabled
+        tabIndex={-1}
+        aria-label={label}
+      />
+      <span
+        aria-hidden
+        className={`material-symbols-outlined shrink-0 text-[16px] leading-none ${classes}`}
+      >
+        {icon}
+      </span>
+    </span>
+  );
+}
+
 function SkillDetailModal({
   open,
   onClose,
@@ -119,20 +214,82 @@ function SkillDetailModal({
     [displayRows],
   );
 
+  const groupsByLevel = useMemo(() => {
+    const m = new Map<number, CheckpointDisplayGroup[]>();
+    for (const g of groups) {
+      const L = g.parent.level;
+      const list = m.get(L) ?? [];
+      list.push(g);
+      m.set(L, list);
+    }
+    return m;
+  }, [groups]);
+
+  const effectiveByEvaluator = useMemo(() => {
+    const map = new Map<Id<"users">, Set<string>>();
+    if (!skillId) return map;
+    for (const ev of evaluators) {
+      map.set(
+        ev._id,
+        effectiveCheckedForEvaluator(
+          evaluations,
+          ev._id,
+          subjectId,
+          skillId,
+          groups,
+        ),
+      );
+    }
+    return map;
+  }, [skillId, evaluations, evaluators, subjectId, groups]);
+
+  const [levelPanelsOpen, setLevelPanelsOpen] = useState<
+    Record<number, boolean>
+  >(() => ({ 1: true, 2: true, 3: true, 4: true, 5: true }));
+
+  const modalInitKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      modalInitKeyRef.current = null;
+      return;
+    }
+    if (!skillId) return;
+    const key = `${skillId}:${subjectId}`;
+    if (modalInitKeyRef.current === key) return;
+    modalInitKeyRef.current = key;
+    const getEffective = (evaluatorId: Id<"users">) =>
+      effectiveByEvaluator.get(evaluatorId) ?? new Set<string>();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset level collapse defaults when dialog opens or skill/subject key changes (ref-gated; not derived props)
+    setLevelPanelsOpen(
+      defaultInsightLevelPanelsOpen({
+        groupsByLevel,
+        evaluators,
+        getEffective,
+      }),
+    );
+  }, [open, skillId, subjectId, effectiveByEvaluator, evaluators, groupsByLevel]);
+
   if (!skillId || !competency) return null;
+
+  const evaluatorInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+    return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+  };
 
   return (
     <dialog
       ref={dialogRef}
-      className="fixed left-1/2 top-1/2 z-50 h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-h-none max-w-none -translate-x-1/2 -translate-y-1/2 rounded-xl border border-outline-variant/25 bg-surface-container p-0 text-on-surface shadow-2xl backdrop:bg-black/60"
+      className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-none -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden overscroll-none rounded-xl border border-outline-variant/25 bg-surface-container p-0 text-on-surface shadow-2xl backdrop:bg-black/60"
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
     >
-      <div className="flex h-full max-h-[inherit] min-h-0 flex-col sm:flex-row">
-        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-5 sm:p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-black uppercase tracking-widest text-primary">
@@ -151,91 +308,203 @@ function SkillDetailModal({
               Close
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-max min-w-full border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-outline-variant/20">
-                  <th className="sticky left-0 z-10 bg-surface-container py-2 pr-3 font-bold uppercase tracking-widest text-on-surface-variant">
-                    Evaluator
-                  </th>
-                  {displayRows.map((r) => (
-                    <th
-                      key={r.id}
-                      className="max-w-[7rem] border-l border-outline-variant/10 px-1 py-2 text-center text-[9px] font-normal normal-case leading-tight text-on-surface-variant"
-                      title={r.text}
-                    >
-                      <span className="line-clamp-4">{r.text}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {evaluators.map((ev) => {
-                  const row = findEvaluation(
-                    evaluations,
-                    ev._id,
-                    subjectId,
-                    skillId,
-                  );
-                  const checked = new Set<string>();
-                  const map = row?.checkpoints ?? {};
-                  for (const [k, v] of Object.entries(map)) {
-                    if (v) checked.add(k);
-                  }
-                  const effective = applyParentNestedCheckpointConsistency(
-                    checked,
-                    groups,
-                  );
-                  return (
-                    <tr
-                      key={ev._id}
-                      className="border-b border-outline-variant/10"
-                    >
-                      <td className="sticky left-0 z-10 bg-surface-container py-2 pr-3 font-medium text-on-surface">
-                        {ev.name}
-                      </td>
-                      {displayRows.map((r) => {
-                        const on = effective.has(r.id);
-                        return (
-                          <td
-                            key={r.id}
-                            className="border-l border-outline-variant/10 px-1 py-1 text-center"
-                          >
-                            <span
-                              className={`material-symbols-outlined text-[18px] leading-none ${
-                                on
-                                  ? "fill-on text-primary"
-                                  : "text-on-surface-variant/50"
-                              }`}
-                            >
-                              {on ? "check_circle" : "circle"}
+
+          <div className="mb-3 flex min-w-0 items-end gap-2 border-b border-outline-variant/20 pb-2 pr-[29px] sm:pr-[37px]">
+            <div className="min-w-0 flex-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+              Criterion
+            </div>
+            <div
+              className="flex shrink-0 gap-1"
+              role="row"
+              aria-label="Evaluators"
+            >
+              {evaluators.map((ev) => (
+                <div
+                  key={ev._id}
+                  className="group relative flex w-7 cursor-help flex-col items-center gap-0.5"
+                >
+                  <span className="text-[9px] font-black tabular-nums text-primary">
+                    {evaluatorInitials(ev.name)}
+                  </span>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-surface-container-highest px-2 py-1 text-[10px] font-medium text-on-surface opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                    {ev.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex w-full flex-col gap-2 bg-surface-container-lowest/80 p-1 sm:p-2">
+            {([1, 2, 3, 4, 5] as const).map((level) => {
+              const groupsAt = groupsByLevel.get(level) ?? [];
+              const rub = competency.levels.find((l) => l.number === level);
+              const levelLabel = rub ? rub.label : `L${level}`;
+              const levelOpen = levelPanelsOpen[level] ?? true;
+              return (
+                <div
+                  key={level}
+                  className="flex w-full flex-col overflow-hidden rounded-xl border border-outline-variant/15 bg-surface-container/50"
+                >
+                  <div
+                    className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4 ${
+                      levelOpen ? "border-b border-outline-variant/15" : ""
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        aria-expanded={levelOpen}
+                        aria-label={
+                          levelOpen
+                            ? `Collapse ${levelLabel}`
+                            : `Expand ${levelLabel}`
+                        }
+                        onClick={() =>
+                          setLevelPanelsOpen((prev) => ({
+                            ...prev,
+                            [level]: !levelOpen,
+                          }))
+                        }
+                        className="flex shrink-0 items-center justify-center rounded-lg border border-outline-variant/20 p-1 text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-surface-bright hover:text-on-surface"
+                      >
+                        <span className="material-symbols-outlined text-xl leading-none">
+                          {levelOpen ? "expand_less" : "expand_more"}
+                        </span>
+                      </button>
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-on-surface sm:text-[11px]">
+                        {levelLabel}
+                      </span>
+                    </div>
+                    {!levelOpen ? (
+                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:pl-2">
+                        <span className="text-[10px] font-medium text-on-surface-variant">
+                          Points
+                        </span>
+                        <div
+                          className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5"
+                          role="group"
+                          aria-label={`Aggregate ${levelLabel} criteria`}
+                        >
+                          {groupsAt.length === 0 ? (
+                            <span className="text-[10px] text-on-surface-variant/60">
+                              —
                             </span>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          ) : (
+                            groupsAt.map((group, pointIndex) => {
+                              let countMet = 0;
+                              for (const ev of evaluators) {
+                                const eff =
+                                  effectiveByEvaluator.get(ev._id) ??
+                                  new Set<string>();
+                                if (parentCheckpointMet(group, eff)) {
+                                  countMet++;
+                                }
+                              }
+                              let state: "all" | "some" | "none" = "none";
+                              if (countMet === evaluators.length && evaluators.length > 0) {
+                                state = "all";
+                              } else if (countMet > 0) {
+                                state = "some";
+                              }
+                              const label =
+                                state === "all"
+                                  ? `Point ${pointIndex + 1}, met by all`
+                                  : state === "some"
+                                    ? `Point ${pointIndex + 1}, met by some (${countMet}/${evaluators.length})`
+                                    : `Point ${pointIndex + 1}, not met by anyone`;
+                              return (
+                                <InsightCheckpointMetGlyph
+                                  key={group.parent.id}
+                                  state={state}
+                                  label={label}
+                                />
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  {levelOpen ? (
+                    <div className="space-y-2 p-3 sm:p-4">
+                      {groupsAt.length === 0 ? (
+                        <p className="text-[10px] text-on-surface-variant/70">
+                          No criteria at this level.
+                        </p>
+                      ) : (
+                        groupsAt.map((group) => {
+                          const parentOnByEv = evaluators.map((ev) =>
+                            parentCheckpointMet(
+                              group,
+                              effectiveByEvaluator.get(ev._id) ?? new Set<string>(),
+                            ),
+                          );
+                          return (
+                            <div
+                              key={group.parent.id}
+                              className="overflow-hidden rounded-lg border border-outline-variant/10 bg-surface-container"
+                            >
+                              <div className="flex gap-2 px-3 py-2.5">
+                                <div className="min-w-0 flex-1 text-xs font-medium leading-snug text-on-surface">
+                                  {group.parent.text}
+                                </div>
+                                <div className="flex shrink-0 gap-1">
+                                  {evaluators.map((ev, i) => {
+                                    const on = parentOnByEv[i]!;
+                                    return (
+                                      <div
+                                        key={ev._id}
+                                        className="flex w-7 justify-center"
+                                      >
+                                        <InsightCheckpointMetGlyph
+                                          met={on}
+                                          label={`${ev.name}: ${group.parent.text.slice(0, 80)}${group.parent.text.length > 80 ? "…" : ""} — ${on ? "met" : "not met"}`}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              {group.nested.map((nestedRow) => (
+                                <div
+                                  key={nestedRow.id}
+                                  className="flex gap-2 border-t border-outline-variant/10 bg-surface-container-high/30 px-3 py-2 pl-5 sm:pl-6"
+                                >
+                                  <div className="min-w-0 flex-1 text-[11px] leading-snug text-on-surface-variant">
+                                    {nestedRow.text}
+                                  </div>
+                                  <div className="flex shrink-0 gap-1">
+                                    {evaluators.map((ev) => {
+                                      const eff =
+                                        effectiveByEvaluator.get(ev._id) ??
+                                        new Set<string>();
+                                      const on = eff.has(nestedRow.id);
+                                      return (
+                                        <div
+                                          key={ev._id}
+                                          className="flex w-7 justify-center"
+                                        >
+                                          <InsightCheckpointMetGlyph
+                                            met={on}
+                                            label={`${ev.name}: ${nestedRow.text.slice(0, 80)}${nestedRow.text.length > 80 ? "…" : ""} — ${on ? "met" : "not met"}`}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
-        <aside className="max-h-[min(40vh,14rem)] shrink-0 overflow-y-auto border-t border-outline-variant/20 bg-surface-container-low p-4 sm:max-h-none sm:w-72 sm:border-l sm:border-t-0">
-          <h3 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-            Point legend
-          </h3>
-          <ul className="space-y-2 text-[10px] text-on-surface-variant">
-            {displayRows.map((r) => (
-              <li key={r.id}>
-                <code className="mr-1 font-mono text-[9px] text-primary/90">
-                  {r.id}
-                </code>
-                <span className="text-on-surface/90">{r.text}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
     </dialog>
   );
 }
