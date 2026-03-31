@@ -8,7 +8,9 @@ import {
 } from "@/lib/devsync-constants";
 import { useMemo, useSyncExternalStore } from "react";
 
-function readStoredEvaluatorUserId(sessionSlug: string): Id<"users"> | null {
+function readStoredSessionConvexUserId(
+  sessionSlug: string,
+): Id<"users"> | null {
   if (typeof window === "undefined") return null;
   try {
     const evalSlug = localStorage.getItem(lastEvalSlugStorageKey(sessionSlug));
@@ -22,15 +24,10 @@ function readStoredEvaluatorUserId(sessionSlug: string): Id<"users"> | null {
   }
 }
 
-/**
- * Convex user id for this browser in `sessionSlug`, if it matches an evaluator on the roster.
- * Uses the same localStorage keys as `/eval/[slug]` join.
- */
-export function useRegisteredEvaluatorId(
+function useStoredSessionConvexUserId(
   sessionSlug: string,
-  roster: Doc<"users">[] | undefined,
 ): Id<"users"> | null {
-  const stored = useSyncExternalStore(
+  return useSyncExternalStore(
     (onChange) => {
       if (typeof window === "undefined") return () => {};
       const h = () => onChange();
@@ -41,10 +38,35 @@ export function useRegisteredEvaluatorId(
         window.removeEventListener("storage", h);
       };
     },
-    () => readStoredEvaluatorUserId(sessionSlug),
+    () => readStoredSessionConvexUserId(sessionSlug),
     () => null,
   );
+}
 
+/**
+ * Convex user id for this browser in `sessionSlug`, if that user is on the roster (any role).
+ * Same localStorage keys as `/eval/[slug]` join — includes managers who signed in via their matrix link.
+ */
+export function useRegisteredRosterMemberId(
+  sessionSlug: string,
+  roster: Doc<"users">[] | undefined,
+): Id<"users"> | null {
+  const stored = useStoredSessionConvexUserId(sessionSlug);
+  return useMemo(() => {
+    if (!stored || !roster?.length) return null;
+    return roster.some((u) => u._id === stored) ? stored : null;
+  }, [stored, roster]);
+}
+
+/**
+ * Convex user id for this browser in `sessionSlug`, if it matches an evaluator on the roster.
+ * Uses the same localStorage keys as `/eval/[slug]` join.
+ */
+export function useRegisteredEvaluatorId(
+  sessionSlug: string,
+  roster: Doc<"users">[] | undefined,
+): Id<"users"> | null {
+  const stored = useStoredSessionConvexUserId(sessionSlug);
   return useMemo(() => {
     if (!stored || !roster?.length) return null;
     const user = roster.find((u) => u._id === stored);

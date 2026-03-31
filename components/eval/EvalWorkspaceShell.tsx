@@ -1,8 +1,9 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useStoredManagerAccessKey } from "@/lib/devsync-browser";
+import { useRegisteredRosterMemberId } from "@/lib/use-registered-evaluator-id";
 import {
   buildEvalHref,
   buildInsightsHref,
@@ -12,7 +13,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useEvalMatrixChrome } from "./EvalMatrixChromeContext";
 import { useLastJoinedEvalSlug } from "./useLastJoinedEvalSlug";
 
@@ -88,6 +89,112 @@ const LIVE_CAL_PATH = "/room/live-evaluation";
 const DRIVER_PATH = "/room/driver";
 const MANAGE_PATH = "/manage";
 
+function pathOnly(href: string) {
+  const i = href.indexOf("?");
+  return i === -1 ? href : href.slice(0, i);
+}
+
+/** Manager (access key or roster role): per-roster-member insights links. Otherwise single link from matrix subject or current insights URL. */
+function WorkspaceInsightsNav({
+  roomSessionSlug,
+  pathname,
+  showSubjectPicker,
+  roster,
+  singleSubjectHref,
+}: {
+  roomSessionSlug: string;
+  pathname: string;
+  showSubjectPicker: boolean;
+  roster: Doc<"users">[] | undefined;
+  singleSubjectHref: string | null;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(() =>
+    pathname.startsWith("/insights/"),
+  );
+
+  const rosterSorted = useMemo(() => {
+    if (!roster?.length) return [];
+    return [...roster].sort((a, b) => a.slug.localeCompare(b.slug));
+  }, [roster]);
+
+  if (showSubjectPicker && rosterSorted.length > 0) {
+    const anyInsightsActive = pathname.startsWith("/insights/");
+    return (
+      <div className="space-y-0">
+        <button
+          type="button"
+          aria-expanded={pickerOpen}
+          onClick={() => setPickerOpen((o) => !o)}
+          className={`flex w-full items-center gap-4 px-6 py-3 text-left transition-all duration-200 ease-in-out ${
+            anyInsightsActive && pickerOpen
+              ? "border-r-2 border-primary bg-primary/10 text-primary"
+              : "text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface"
+          }`}
+        >
+          <span className="material-symbols-outlined text-xl">bubble_chart</span>
+          <span className="flex-1 text-sm font-medium uppercase tracking-widest">
+            Subject insights
+          </span>
+          <span
+            className={`material-symbols-outlined text-lg transition-transform ${pickerOpen ? "rotate-180" : ""}`}
+            aria-hidden
+          >
+            expand_more
+          </span>
+        </button>
+        {pickerOpen ? (
+          <ul className="border-l-2 border-primary/25 py-1 pl-2 ml-6 space-y-0.5">
+            {rosterSorted.map((u) => {
+              const href = buildInsightsHref(u.slug, roomSessionSlug);
+              const p = pathOnly(href);
+              const active = pathname === p;
+              return (
+                <li key={u._id}>
+                  <Link
+                    href={href}
+                    className={`flex items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium uppercase tracking-wide transition-colors ${
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1 truncate normal-case tracking-normal">
+                      {u.name}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] font-normal opacity-70">
+                      {u.slug}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (singleSubjectHref == null) return null;
+  const singlePath = pathOnly(singleSubjectHref);
+  const highlighted = pathname === singlePath;
+
+  return (
+    <Link
+      href={singleSubjectHref}
+      className={`flex items-center gap-4 px-6 py-3 transition-all duration-200 ease-in-out ${
+        highlighted
+          ? "border-r-2 border-primary bg-primary/10 text-primary"
+          : "text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface"
+      }`}
+    >
+      <span className="material-symbols-outlined text-xl">bubble_chart</span>
+      <span className="text-sm font-medium uppercase tracking-widest">
+        Subject insights
+      </span>
+    </Link>
+  );
+}
+
 type EvalVariantProps = {
   variant?: "eval";
   slug: string;
@@ -150,6 +257,21 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const sessionRow = useQuery(api.session.getSession, {
     slug: roomSessionSlug,
   });
+  const roster = useQuery(
+    api.users.listUsers,
+    sessionRow?._id ? { sessionId: sessionRow._id } : "skip",
+  );
+  const registeredRosterMemberId = useRegisteredRosterMemberId(
+    roomSessionSlug,
+    roster,
+  );
+  const registeredMemberIsManager =
+    registeredRosterMemberId != null &&
+    roster?.some(
+      (u) => u._id === registeredRosterMemberId && u.role === "manager",
+    ) === true;
+  const showInsightsSubjectPicker =
+    Boolean(storedManagerKey) || registeredMemberIsManager;
   const sessionPill = useMemo(
     () => sessionHeaderPill(sessionRow, roomSessionSlug),
     [sessionRow, roomSessionSlug],
@@ -182,47 +304,34 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
   const skillMatrixPathname =
     matrixSlugForNav != null ? `/eval/${matrixSlugForNav}` : null;
 
-  const insightsSubjectSlugForNav = isInsights ? props.subjectSlug : null;
+  const insightsRouteSubjectSlug =
+    props.variant === "insights" ? props.subjectSlug : undefined;
 
+  /** Insights URL for the subject in the path (`/insights/...`) or matrix subject dropdown; always scoped to `roomSessionSlug` (see `?session=` + Convex bundle). */
   const subjectInsightsHref = useMemo(() => {
-    if (insightsSubjectSlugForNav != null) {
-      return buildInsightsHref(insightsSubjectSlugForNav, roomSessionSlug);
+    if (isRoom) return null;
+    if (insightsRouteSubjectSlug != null) {
+      return buildInsightsHref(insightsRouteSubjectSlug, roomSessionSlug);
     }
-    if (isInsights || isRoom) return null;
     const chrome = matrixChrome;
     if (!chrome) return null;
     const su = chrome.roster.find(
       (u) => u._id === chrome.selectedSubjectId,
     );
     return su ? buildInsightsHref(su.slug, roomSessionSlug) : null;
-  }, [
-    insightsSubjectSlugForNav,
-    isInsights,
-    isRoom,
-    matrixChrome,
-    roomSessionSlug,
-  ]);
-
-  const insightsNav: NavItem[] =
-    subjectInsightsHref != null
-      ? [
-          {
-            href: subjectInsightsHref,
-            label: "Subject insights",
-            icon: "bubble_chart",
-          },
-        ]
-      : [];
+  }, [isRoom, insightsRouteSubjectSlug, matrixChrome, roomSessionSlug]);
 
   const skillMatrixNav: NavItem[] =
     skillMatrixHref != null
       ? [{ href: skillMatrixHref, label: "Skill matrix", icon: "hub" }]
       : [];
 
-  const mainNav: NavItem[] = [
+  const mainNavHead: NavItem[] = [
     { href: "/", label: "Home", icon: "home" },
     ...skillMatrixNav,
-    ...insightsNav,
+  ];
+
+  const mainNavTail: NavItem[] = [
     ...(isRoom
       ? ([
           {
@@ -303,7 +412,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
         </div>
 
         <nav className="flex flex-1 flex-col space-y-1">
-          {mainNav.map((item) => {
+          {mainNavHead.map((item) => {
             const isHome =
               !item.disabled && item.href === "/" && pathname === "/";
             const isSkillMatrix =
@@ -311,10 +420,52 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               item.label === "Skill matrix" &&
               skillMatrixPathname != null &&
               pathname === skillMatrixPathname;
-            const isSubjectInsights =
-              !item.disabled &&
-              item.label === "Subject insights" &&
-              pathname.startsWith("/insights/");
+            const highlighted = isHome || isSkillMatrix;
+
+            if (item.disabled) {
+              return (
+                <span
+                  key={item.label}
+                  title={item.disabledTitle}
+                  className="flex cursor-not-allowed items-center gap-4 px-6 py-3 text-on-surface-variant/50"
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    {item.icon}
+                  </span>
+                  <span className="text-sm font-medium uppercase tracking-widest">
+                    {item.label}
+                  </span>
+                </span>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href + item.label}
+                href={item.href}
+                className={`flex items-center gap-4 px-6 py-3 transition-all duration-200 ease-in-out ${
+                  highlighted
+                    ? "border-r-2 border-primary bg-primary/10 text-primary"
+                    : "text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface"
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  {item.icon}
+                </span>
+                <span className="text-sm font-medium uppercase tracking-widest">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+          <WorkspaceInsightsNav
+            roomSessionSlug={roomSessionSlug}
+            pathname={pathname}
+            showSubjectPicker={showInsightsSubjectPicker}
+            roster={roster}
+            singleSubjectHref={subjectInsightsHref}
+          />
+          {mainNavTail.map((item) => {
             const isControlRoom =
               !item.disabled &&
               pathname.startsWith(DRIVER_PATH) &&
@@ -328,13 +479,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               item.label === "Team setup" &&
               pathname.startsWith(MANAGE_PATH);
 
-            const highlighted =
-              isHome ||
-              isSkillMatrix ||
-              isSubjectInsights ||
-              isControlRoom ||
-              isLiveCal ||
-              isTeamSetup;
+            const highlighted = isControlRoom || isLiveCal || isTeamSetup;
 
             if (item.disabled) {
               return (
