@@ -89,6 +89,9 @@ const LIVE_CAL_PATH = "/room/live-evaluation";
 const DRIVER_PATH = "/room/driver";
 const MANAGE_PATH = "/manage";
 
+/** Sidebar link to `/eval/[slug]` (competency checklist); label avoids jargon like “skill matrix”. */
+const EVAL_GRID_NAV_LABEL = "Evaluation";
+
 function pathOnly(href: string) {
   const i = href.indexOf("?");
   return i === -1 ? href : href.slice(0, i);
@@ -323,7 +326,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
 
   const skillMatrixNav: NavItem[] =
     skillMatrixHref != null
-      ? [{ href: skillMatrixHref, label: "Skill matrix", icon: "hub" }]
+      ? [{ href: skillMatrixHref, label: EVAL_GRID_NAV_LABEL, icon: "hub" }]
       : [];
 
   const mainNavHead: NavItem[] = [
@@ -405,7 +408,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
                 DevSync
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">
-                Skill matrix
+                Team evaluations
               </p>
             </div>
           </div>
@@ -417,7 +420,7 @@ export function EvalWorkspaceShell(props: EvalWorkspaceShellProps) {
               !item.disabled && item.href === "/" && pathname === "/";
             const isSkillMatrix =
               !item.disabled &&
-              item.label === "Skill matrix" &&
+              item.label === EVAL_GRID_NAV_LABEL &&
               skillMatrixPathname != null &&
               pathname === skillMatrixPathname;
             const highlighted = isHome || isSkillMatrix;

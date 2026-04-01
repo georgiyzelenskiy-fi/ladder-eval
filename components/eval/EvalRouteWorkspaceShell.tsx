@@ -16,7 +16,7 @@ function EvalRouteWorkspaceShellInner({
   const sessionSlug = useRoomLinkSessionSlug();
   return (
     <EvalMatrixChromeProvider>
-      <EvalWorkspaceShell slug={slug} sessionSlug={sessionSlug}>
+      <EvalWorkspaceShell variant="eval" slug={slug} sessionSlug={sessionSlug}>
         {children}
       </EvalWorkspaceShell>
     </EvalMatrixChromeProvider>

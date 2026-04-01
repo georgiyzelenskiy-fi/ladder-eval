@@ -153,8 +153,8 @@ export function HomeHubClient() {
             <HubCard
               href={skillMatrixHref}
               icon="hub"
-              title="Skill matrix"
-              subtitle="Return to the matrix for this browser’s last evaluator link in this session."
+              title="Evaluation"
+              subtitle="Return to the competency checklist for this browser’s last evaluator link in this session."
             />
           ) : null}
         </div>
