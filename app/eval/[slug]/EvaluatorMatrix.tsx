@@ -42,6 +42,8 @@ function evaluationFor(
 }
 
 function MatrixWorkspaceHero() {
+  //Temporary disabled because why to render placeholders
+  return null;
   return (
     <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
       <div className="relative overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 lg:col-span-4">
